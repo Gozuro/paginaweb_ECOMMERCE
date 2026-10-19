@@ -1,33 +1,167 @@
-/* Personalizar: diseño, corte, color y envío del pedido */
+/* Estudio de personalización: corte, color, arte, texto, talla y cantidad, con vista 3D y precio en vivo */
 const q = new URLSearchParams(location.search), saved = readDesign();
 const st = {
   cut: CUTS[q.get('cut')] ? q.get('cut') : (CUTS[saved.cut] ? saved.cut : 'regular'),
   color: /^[0-9a-f]{6}$/i.test(q.get('color') || '') ? '#' + q.get('color') : (saved.color || '#2F4BFF'),
-  img: saved.img || null
+  img: saved.img || null,
+  fileName: saved.fileName || '',
+  presetKey: saved.img ? null : (saved.presetKey || 'ninguno'),
+  text: saved.text || '',
+  fontId: FONTS.some(f => f.id === saved.fontId) ? saved.fontId : FONTS[0].id,
+  textColor: saved.textColor || TEXT_COLORS[0].hex,
+  side: 'front',
+  size: SIZES.includes(saved.size) ? saved.size : 'M',
+  qty: saved.qty || 1
 };
 const $ = id => document.getElementById(id), status = $('status');
 
+/* Vista 3D; si no hay WebGL o Three.js no cargó, se usa la vista plana (SVG) */
+$('stage').hidden = false;
+const viewer = createShirtViewer($('stage'));
+$('stage').hidden = !viewer;
+$('viewer-tools').hidden = !viewer;
+$('preview').hidden = !!viewer;
+
+const currentFont = () => FONTS.find(f => f.id === st.fontId) || FONTS[0];
+const unitPrice = () => CUTS[st.cut].price + PRINT_FEE;
+const hasArt = () => !!st.img || (st.presetKey && st.presetKey !== 'ninguno') || !!st.text;
+
+function markSide() { $('sides').querySelectorAll('[data-side]').forEach(b => b.setAttribute('aria-pressed', b.dataset.side === st.side)); }
+
+/* Regenera el diseño 3D solo cuando cambia el arte o el texto (no con cada cambio de talla o cantidad) */
+let printKey = null;
+function syncPrint() {
+  const key = [st.img, st.presetKey, st.text, st.fontId, st.textColor];
+  if (printKey && key.every((v, i) => v === printKey[i])) return;
+  printKey = key;
+  viewer.setPrint({ img: st.img, preset: st.img ? null : st.presetKey, text: st.text, font: currentFont(), textColor: st.textColor })
+    .catch(err => { status.className = 'status err'; status.textContent = typeof err === 'string' ? err : 'No se pudo generar el diseño.'; });
+}
+
 function render() {
-  $('preview').innerHTML = shirtSVG(st.color, st.cut, st.img);
-  $('preview-note').textContent = st.img ? 'Vista previa. Ajustamos la posición contigo por WhatsApp.' : 'Elige corte y color. Tu diseño aparecerá aquí.';
+  if (viewer) {
+    viewer.setModel(st.cut, st.color);
+    viewer.setSide(st.side);
+    syncPrint();
+  } else {
+    $('preview').innerHTML = shirtSVG(st.color, st.cut, {
+      img: st.img, presetKey: st.img ? null : st.presetKey, side: st.side,
+      text: st.text, font: currentFont(), textColor: st.textColor
+    });
+  }
+  $('preview-note').textContent = hasArt() ? 'Vista previa de tu playera personalizada.' : 'Elige corte y color. Tu diseño aparecerá aquí.';
+  markSide();
+
   $('cuts').innerHTML = cutsHTML(st.cut);
   $('swatches').innerHTML = swatchesHTML(st.color);
+  $('color-note').innerHTML = `Color seleccionado: <strong>${(COLORS.find(c => c.hex.toLowerCase() === st.color.toLowerCase()) || {}).name || st.color}</strong>`;
+  $('presets').innerHTML = presetsHTML(st.img ? null : st.presetKey);
+  $('fonts').innerHTML = fontsHTML(st.fontId, st.text);
+  $('text-colors').innerHTML = textColorsHTML(st.textColor);
+  $('sizes').innerHTML = sizePillsHTML(st.size);
+  $('qty-val').textContent = st.qty;
+  $('price-total').textContent = `$${unitPrice() * st.qty}`;
+
   saveDesign(st);
 }
+
+$('sides').addEventListener('click', e => { const b = e.target.closest('[data-side]'); if (b) { st.side = b.dataset.side; render(); } });
 $('cuts').addEventListener('click', e => { const b = e.target.closest('[data-cut]'); if (b) { st.cut = b.dataset.cut; render(); } });
 $('swatches').addEventListener('click', e => { const b = e.target.closest('[data-color]'); if (b) { st.color = b.dataset.color; render(); } });
+
 $('file').addEventListener('change', async e => {
-  try { st.img = await loadDesign(e.target.files[0]); status.className = 'status'; status.textContent = 'Diseño cargado.'; render(); }
-  catch (err) { status.className = 'status err'; status.textContent = err; }
+  const file = e.target.files[0]; if (!file) return;
+  try {
+    status.className = 'status'; status.textContent = '';
+    st.img = await loadDesign(file);
+    st.fileName = file.name;
+    st.presetKey = null;
+    $('file-name').textContent = file.name;
+    $('file-loaded').hidden = false;
+    render();
+    toast('Diseño cargado.');
+  } catch (err) { status.className = 'status err'; status.textContent = err; }
 });
-$('to3d').addEventListener('click', () => { saveDesign(st); location.href = 'visor-3d.html'; });
-$('form').addEventListener('submit', e => {
+$('file-remove').addEventListener('click', () => {
+  st.img = null; st.fileName = ''; st.presetKey = 'ninguno';
+  $('file').value = ''; $('file-loaded').hidden = true;
+  render();
+});
+
+$('presets').addEventListener('click', e => {
+  const b = e.target.closest('[data-preset]'); if (!b) return;
+  st.presetKey = b.dataset.preset; st.img = null; st.fileName = '';
+  $('file').value = ''; $('file-loaded').hidden = true;
+  render();
+});
+
+$('text-input').value = st.text;
+$('text-input').addEventListener('input', e => { st.text = e.target.value; render(); });
+$('fonts').addEventListener('click', e => { const b = e.target.closest('[data-font]'); if (b) { st.fontId = b.dataset.font; render(); } });
+$('text-colors').addEventListener('click', e => { const b = e.target.closest('[data-textcolor]'); if (b) { st.textColor = b.dataset.textcolor; render(); } });
+
+$('sizes').addEventListener('click', e => { const b = e.target.closest('[data-size]'); if (b) { st.size = b.dataset.size; render(); } });
+$('qty-minus').addEventListener('click', () => { if (st.qty > 1) { st.qty--; render(); } });
+$('qty-plus').addEventListener('click', () => { if (st.qty < 20) { st.qty++; render(); } else toast('Máximo 20 piezas por pedido. Escríbenos para mayoreo.'); });
+
+/* Herramientas de la vista 3D: giro, fondo, vista previa y descarga */
+if (viewer) {
+  $('views').addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    if (b.id === 'spin') { const on = b.getAttribute('aria-pressed') !== 'true'; b.setAttribute('aria-pressed', on); viewer.setSpin(on); }
+    else if (b.dataset.view) viewer.turnTo(+b.dataset.view);
+  });
+  $('bgs').addEventListener('click', e => {
+    const b = e.target.closest('[data-bg]'); if (!b) return;
+    viewer.setBackground(b.dataset.bg);
+    $('bgs').querySelectorAll('[data-bg]').forEach(s => s.setAttribute('aria-pressed', s === b));
+  });
+  $('shot').addEventListener('click', () => {
+    const a = document.createElement('a'); a.download = 'mi-playera-3d.png'; a.href = viewer.capture(); a.click();
+  });
+  const dlg = $('preview-dlg');
+  $('open-preview').addEventListener('click', () => {
+    const url = viewer.capture(); $('preview-img').src = url; $('preview-dl').href = url; dlg.showModal();
+  });
+  $('preview-x').addEventListener('click', () => dlg.close());
+}
+
+$('reset').addEventListener('click', () => {
+  Object.assign(st, { cut: 'regular', color: '#2F4BFF', img: null, fileName: '', presetKey: 'ninguno', text: '', fontId: FONTS[0].id, textColor: TEXT_COLORS[0].hex, side: 'front', size: 'M', qty: 1 });
+  $('text-input').value = ''; $('file').value = ''; $('file-loaded').hidden = true; $('notas').value = '';
+  status.className = 'status'; status.textContent = '';
+  render();
+  toast('Opciones reiniciadas.');
+});
+
+$('form').addEventListener('submit', async e => {
   e.preventDefault();
-  if (!$('form').reportValidity()) return;
-  if (!st.img) { status.className = 'status err'; status.textContent = 'Sube tu diseño antes de enviar el pedido.'; return; }
-  const f = new FormData($('form')), color = (COLORS.find(c => c.hex.toLowerCase() === st.color.toLowerCase()) || { name: st.color }).name;
-  const msg = `Hola, soy ${f.get('nombre')}. Quiero ${f.get('cant')} playera(s) personalizada(s).\nCorte: ${CUTS[st.cut].name}\nColor: ${color}\nTalla: ${f.get('talla')}\nNotas: ${f.get('notas') || 'Sin notas'}\nTe mando mi diseño por este chat.`;
-  status.className = 'status'; status.textContent = 'Abrimos WhatsApp. Adjunta tu diseño en el chat.';
-  window.open(`https://wa.me/${WHATSAPP}?text=${encodeURIComponent(msg)}`, '_blank', 'noopener');
+  status.className = 'status'; status.textContent = '';
+
+  const thumbSrc = st.img ? await thumb(st.img, 160) : null;
+  const cutName = CUTS[st.cut].name;
+  const colorName = (COLORS.find(c => c.hex.toLowerCase() === st.color.toLowerCase()) || {}).name || st.color;
+
+  Cart.add({
+    key: 'custom-' + Date.now() + '-' + Math.random().toString(36).slice(2, 7),
+    kind: 'custom',
+    name: `Playera ${cutName} personalizada`,
+    cut: st.cut, color: st.color, colorName,
+    size: st.size, qty: st.qty,
+    price: unitPrice(),
+    text: st.text || '',
+    fontId: st.fontId,
+    textColor: st.textColor,
+    presetKey: st.img ? null : st.presetKey,
+    thumb: thumbSrc,
+    side: st.side,
+    notes: $('notas').value.trim()
+  });
+
+  status.textContent = 'Agregada al carrito. Puedes seguir personalizando o ir a pagar.';
+  toast('Playera agregada al carrito.');
+  Cart.open();
 });
+
+if (st.img) { $('file-name').textContent = st.fileName || 'Imagen cargada'; $('file-loaded').hidden = false; }
 render();
