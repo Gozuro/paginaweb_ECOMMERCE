@@ -132,33 +132,52 @@ function shirtPath(k, side) {
 }
 
 /* Capa de arte (archivo subido o estampado) + texto, dentro del área imprimible del pecho */
-function printLayerSVG(cut, { img, presetKey, text, font, textColor } = {}) {
+function printLayerSVG(cut, {
+  img, presetKey, text, font, textColor,
+  imgScale = 1, imgX = 0, imgY = 0,
+  textScale = 1, textX = 0, textY = 0
+} = {}) {
   const w = CUTS[cut].w, a = Math.min(w * 80, 62), cx = 120, top = 46;
   const hasArt = !!img || (presetKey && presetKey !== 'ninguno' && PRESETS[presetKey] && PRESETS[presetKey].inner);
+  const k = a / 440;
   let out = '';
-  if (img) out += `<image href="${img}" x="${cx - a / 2}" y="${top}" width="${a}" height="${a}" preserveAspectRatio="xMidYMid meet"/>`;
-  else if (presetKey && PRESETS[presetKey] && PRESETS[presetKey].inner) {
-    out += `<svg x="${cx - a / 2}" y="${top}" width="${a}" height="${a}" viewBox="0 0 140 140">${PRESETS[presetKey].inner}</svg>`;
+
+  const scale = imgScale || 1;
+  const sa = a * scale;
+  const ix = cx - sa / 2 + (imgX || 0) * k;
+  const iy = top + (a - sa) / 2 + (imgY || 0) * k;
+
+  if (img) {
+    out += `<image href="${img}" x="${ix.toFixed(2)}" y="${iy.toFixed(2)}" width="${sa.toFixed(2)}" height="${sa.toFixed(2)}" preserveAspectRatio="xMidYMid meet"/>`;
+  } else if (presetKey && PRESETS[presetKey] && PRESETS[presetKey].inner) {
+    out += `<svg x="${ix.toFixed(2)}" y="${iy.toFixed(2)}" width="${sa.toFixed(2)}" height="${sa.toFixed(2)}" viewBox="0 0 140 140">${PRESETS[presetKey].inner}</svg>`;
   }
+
   if (text) {
     /* El texto se ajusta al ancho del pecho (más grande si va solo; en una franja bajo el arte si hay arte) */
     const f = font || FONTS[0], bw = a * 1.5;
     const zone = hasArt ? { h: bw * .26, max: bw * .16, cy: top + a + 3 + bw * .13 } : { h: bw, max: bw * .26, cy: top + a / 2 };
     const fit = fitText(text, f, bw, zone.h, zone.max);
-    const step = fit.fs * fit.lh, y0 = zone.cy - (fit.lines.length * step) / 2 + step / 2;
-    out += `<text text-anchor="middle" dominant-baseline="central" font-family="${f.family}" font-weight="${f.weight}" font-style="${f.style}" font-size="${fit.fs.toFixed(2)}" fill="${textColor || '#101B33'}">`
-      + fit.lines.map((ln, i) => `<tspan x="${cx}" y="${(y0 + i * step).toFixed(2)}">${escapeXML(ln)}</tspan>`).join('') + '</text>';
+    if (fit) {
+      const actualFs = fit.fs * (textScale || 1);
+      const step = actualFs * fit.lh;
+      const textCy = zone.cy + (textY || 0) * k;
+      const textCx = cx + (textX || 0) * k;
+      const y0 = textCy - (fit.lines.length * step) / 2 + step / 2;
+      out += `<text text-anchor="middle" dominant-baseline="central" font-family="${f.family}" font-weight="${f.weight}" font-style="${f.style}" font-size="${actualFs.toFixed(2)}" fill="${textColor || '#101B33'}">`
+        + fit.lines.map((ln, i) => `<tspan x="${textCx.toFixed(1)}" y="${(y0 + i * step).toFixed(2)}">${escapeXML(ln)}</tspan>`).join('') + '</text>';
+    }
   }
   return out;
 }
 
 function shirtSVG(color, cut, opts = {}) {
-  const { img, presetKey, side = 'front', text, font, textColor } = opts;
+  const { img, presetKey, side = 'front', text, font, textColor, imgScale, imgX, imgY, textScale, textX, textY } = opts;
   const seam = side === 'back'
     ? `<line x1="120" y1="38" x2="120" y2="${(14 + (1 - (1 - CUTS[cut].L)) * 88).toFixed(1)}" stroke="#101B33" stroke-opacity=".22" stroke-width="1.5" stroke-dasharray="4,4"/>`
     : '';
   return `<svg viewBox="0 0 240 200" role="img" aria-label="Playera ${CUTS[cut].name}, ${side === 'back' ? 'espalda' : 'frente'}">
     <path d="${shirtPath(cut, side)}" fill="${color}" stroke="#101B33" stroke-width="2.5" stroke-linejoin="round"/>
     ${seam}
-    ${printLayerSVG(cut, { img, presetKey, text, font, textColor })}</svg>`;
+    ${printLayerSVG(cut, { img, presetKey, text, font, textColor, imgScale, imgX, imgY, textScale, textX, textY })}</svg>`;
 }

@@ -6,25 +6,25 @@ process.env.STRIPE_SECRET_KEY = 'sk_test_abc123';
 
 const be = loadBackend();
 const { AdminError } = be.admin;
-after(() => be.close());
-beforeEach(() => be.reset());
+after(async () => await be.close());
+beforeEach(async () => await be.reset());
 
 /* Crea un pedido pagado (2 x prod-01, stock 24 -> 22) ligado a su sesión de Stripe */
-function paidOrder(sessionId) {
-  be.orders.savePendingCheckout(sessionId, sampleBody());
-  return be.orders.completePaidCheckout(paidSession(sessionId, 457)).folio;
+async function paidOrder(sessionId) {
+  await be.orders.savePendingCheckout(sessionId, sampleBody());
+  return (await be.orders.completePaidCheckout(paidSession(sessionId, 457))).folio;
 }
-const statusOf = folio => be.db.prepare('SELECT status FROM orders WHERE folio = ?').get(folio).status;
+const statusOf = async folio => (await be.db.prepare('SELECT status FROM orders WHERE folio = ?').get(folio)).status;
 
 test('cancelar un pedido pagado reembolsa en Stripe y repone el stock', async () => {
-  const folio = paidOrder('cs_test_adm1');
-  assert.equal(be.stock('prod-01'), 22);
+  const folio = await paidOrder('cs_test_adm1');
+  assert.equal(await be.stock('prod-01'), 22);
   const fake = stripeFake({ session: paidSession('cs_test_adm1', 457) });
   try {
     const r = await be.admin.updateOrderStatus(folio, 'cancelado');
     assert.deepEqual({ ...r }, { folio, status: 'cancelado', refunded: true });
-    assert.equal(statusOf(folio), 'cancelado');
-    assert.equal(be.stock('prod-01'), 24);
+    assert.equal(await statusOf(folio), 'cancelado');
+    assert.equal(await be.stock('prod-01'), 24);
 
     const refunds = fake.calls.filter(c => c.method === 'POST');
     assert.equal(refunds.length, 1);
@@ -34,40 +34,40 @@ test('cancelar un pedido pagado reembolsa en Stripe y repone el stock', async ()
 });
 
 test('si el pago ya estaba reembolsado, cancelar no crea otro reembolso', async () => {
-  const folio = paidOrder('cs_test_adm2');
+  const folio = await paidOrder('cs_test_adm2');
   const fake = stripeFake({ session: paidSession('cs_test_adm2', 457), refunds: [{ status: 'succeeded' }] });
   try {
     const r = await be.admin.updateOrderStatus(folio, 'cancelado');
     assert.equal(r.refunded, true);
-    assert.equal(statusOf(folio), 'cancelado');
+    assert.equal(await statusOf(folio), 'cancelado');
     assert.equal(fake.calls.filter(c => c.method === 'POST').length, 0);
   } finally { fake.restore(); }
 });
 
 test('si el reembolso falla, el pedido no se cancela y el stock no se repone', async () => {
-  const folio = paidOrder('cs_test_adm3');
+  const folio = await paidOrder('cs_test_adm3');
   const fake = stripeFake({ session: paidSession('cs_test_adm3', 457), failRefund: true });
   try {
     await assert.rejects(be.admin.updateOrderStatus(folio, 'cancelado'), e =>
       e instanceof AdminError && e.status === 502 && /refund_boom/.test(e.message));
-    assert.equal(statusOf(folio), 'pagado');
-    assert.equal(be.stock('prod-01'), 22);
+    assert.equal(await statusOf(folio), 'pagado');
+    assert.equal(await be.stock('prod-01'), 22);
   } finally { fake.restore(); }
 });
 
 test('cancelar un pedido que no pasó por Stripe no consulta a Stripe', async () => {
-  const { folio } = be.orders.createOrder(sampleBody());
+  const { folio } = await be.orders.createOrder(sampleBody());
   const fake = installFetch(() => { throw new Error('no debía llamar a Stripe'); });
   try {
     const r = await be.admin.updateOrderStatus(folio, 'cancelado');
     assert.equal(r.refunded, false);
-    assert.equal(statusOf(folio), 'cancelado');
+    assert.equal(await statusOf(folio), 'cancelado');
     assert.equal(fake.calls.length, 0);
   } finally { fake.restore(); }
 });
 
 test('otros cambios de estado no tocan Stripe', async () => {
-  const folio = paidOrder('cs_test_adm4');
+  const folio = await paidOrder('cs_test_adm4');
   const fake = installFetch(() => { throw new Error('no debía llamar a Stripe'); });
   try {
     const r = await be.admin.updateOrderStatus(folio, 'enviado');
@@ -77,10 +77,10 @@ test('otros cambios de estado no tocan Stripe', async () => {
 });
 
 test('updateOrderStatus valida el estado y el folio, y no reabre pedidos cancelados', async () => {
-  const folio = paidOrder('cs_test_adm5');
+  const folio = await paidOrder('cs_test_adm5');
   await assert.rejects(be.admin.updateOrderStatus(folio, 'inventado'), e => e instanceof AdminError && e.status === 400);
   await assert.rejects(be.admin.updateOrderStatus('TS-99999', 'enviado'), e => e instanceof AdminError && e.status === 404);
 
-  be.db.prepare("UPDATE orders SET status = 'cancelado' WHERE folio = ?").run(folio);
+  await be.db.prepare("UPDATE orders SET status = 'cancelado' WHERE folio = ?").run(folio);
   await assert.rejects(be.admin.updateOrderStatus(folio, 'pagado'), e => e instanceof AdminError && e.status === 400);
 });

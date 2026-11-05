@@ -74,4 +74,25 @@ textarea{font:inherit;padding:.65rem .8rem;border-radius:10px;border:2px solid v
 .studio-summary strong{font:800 1.5rem var(--display)}
 .actions{display:flex;gap:.8rem;flex-wrap:wrap}
 
+/* Paneles de ajuste: tamaño y posición de imagen y caligrafía */
+.stitch-sm{border:2px dashed #BAC5DC;border-radius:var(--r);background:#F4F6FC}
+.adjust-box{margin-top:.85rem;padding:1rem 1.1rem;display:flex;flex-direction:column;gap:.85rem}
+.adjust-head{display:flex;justify-content:space-between;align-items:center;gap:.6rem;flex-wrap:wrap}
+.adjust-title{display:inline-flex;align-items:center;gap:.45rem;font:800 .95rem var(--display);color:var(--ink)}
+.adjust-title svg{color:var(--cobalt);flex-shrink:0}
+.adjust-row{display:flex;flex-direction:column;gap:.35rem}
+.adjust-label-row{display:flex;justify-content:space-between;align-items:center;font-size:.84rem;font-weight:700;color:var(--muted)}
+.adjust-val{font-size:.85rem;font-weight:800;color:var(--cobalt);font-family:var(--display)}
+.adjust-ctrl-bar{display:flex;align-items:center;gap:.6rem}
+.adjust-step-btn{width:2.1rem;height:2.1rem;border-radius:8px;border:2px solid var(--ink);background:#fff;color:var(--ink);font:800 1rem var(--display);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:transform .12s,background .12s,border-color .12s}
+.adjust-step-btn:hover{background:#E8ECFF;border-color:var(--cobalt);color:var(--cobalt)}
+.adjust-step-btn:active{transform:scale(.92)}
+.adjust-ctrl-bar input[type=range]{flex:1;accent-color:var(--cobalt);height:6px;cursor:pointer}
+.adjust-presets{display:flex;flex-direction:column;gap:.35rem;margin-top:.2rem}
+.adjust-sublabel{font-size:.78rem;font-weight:700;color:var(--muted)}
+.preset-pill-group{display:flex;gap:.4rem;flex-wrap:wrap}
+.preset-pill{padding:.3rem .75rem;border-radius:999px;border:1.5px solid var(--ink);background:#fff;color:var(--ink);font:700 .78rem var(--body);cursor:pointer;transition:background .15s,border-color .15s,color .15s,transform .1s}
+.preset-pill:hover{background:#E8ECFF;border-color:var(--cobalt);color:var(--cobalt);transform:translateY(-1px)}
+.preset-pill[aria-pressed=true]{background:var(--ink);color:#fff;border-color:var(--ink)}
+
 @media (max-width:860px){.studio-grid{grid-template-columns:1fr}.studio-preview{position:static}.stage{height:clamp(300px,55vh,440px)}}

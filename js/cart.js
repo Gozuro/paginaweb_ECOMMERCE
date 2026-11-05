@@ -124,7 +124,10 @@ const Cart = (() => {
   function itemThumb(it) {
     if (it.kind === 'custom') {
       const font = FONTS.find(f => f.id === it.fontId);
-      return shirtSVG(it.color, it.cut, { img: it.thumb, presetKey: it.presetKey, text: it.text, font, textColor: it.textColor, side: it.side });
+      return shirtSVG(it.color, it.cut, {
+        img: it.thumb, presetKey: it.presetKey, text: it.text, font, textColor: it.textColor, side: it.side,
+        imgScale: it.imgScale, imgX: it.imgX, imgY: it.imgY, textScale: it.textScale, textY: it.textY
+      });
     }
     return shirtSVG(it.color, it.cut);
   }

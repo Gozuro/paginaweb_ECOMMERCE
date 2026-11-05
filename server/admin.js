@@ -70,7 +70,7 @@ function login(password, ip) {
   return sessionCookie();
 }
 
-function listOrders({ status, q, page }) {
+async function listOrders({ status, q, page }) {
   const where = [], params = [];
   if (status && STATUSES.includes(status)) { where.push('status = ?'); params.push(status); }
   if (q) { where.push('(folio LIKE ? OR email LIKE ?)'); params.push(`%${q}%`, `%${q}%`); }
@@ -78,8 +78,9 @@ function listOrders({ status, q, page }) {
   const pageNum = Math.max(1, Number(page) || 1);
   const offset = (pageNum - 1) * PAGE_SIZE;
 
-  const total = db.prepare(`SELECT COUNT(*) AS n FROM orders ${whereSql}`).get(...params).n;
-  const rows = db.prepare(`
+  const totalRow = await db.prepare(`SELECT COUNT(*) AS n FROM orders ${whereSql}`).get(...params);
+  const total = totalRow ? totalRow.n : 0;
+  const rows = await db.prepare(`
     SELECT folio, status, email, first_name, last_name, total, created_at
     FROM orders ${whereSql} ORDER BY id DESC LIMIT ? OFFSET ?
   `).all(...params, PAGE_SIZE, offset);
@@ -87,27 +88,27 @@ function listOrders({ status, q, page }) {
   return { rows, total, page: pageNum, pageSize: PAGE_SIZE, pages: Math.max(1, Math.ceil(total / PAGE_SIZE)) };
 }
 
-function getOrder(folio) {
-  const order = db.prepare('SELECT * FROM orders WHERE folio = ?').get(folio);
+async function getOrder(folio) {
+  const order = await db.prepare('SELECT * FROM orders WHERE folio = ?').get(folio);
   if (!order) throw new AdminError(404, 'Pedido no encontrado.');
-  const items = db.prepare('SELECT * FROM order_items WHERE order_id = ?').all(order.id);
+  const items = await db.prepare('SELECT * FROM order_items WHERE order_id = ?').all(order.id);
   return { order, items };
 }
 
-function setOrderStatus(folio, status) {
+async function setOrderStatus(folio, status) {
   if (!STATUSES.includes(status)) throw new AdminError(400, 'Estado inválido.');
-  return tx(() => {
-    const order = db.prepare('SELECT * FROM orders WHERE folio = ?').get(folio);
+  return tx(async () => {
+    const order = await db.prepare('SELECT * FROM orders WHERE folio = ?').get(folio);
     if (!order) throw new AdminError(404, 'Pedido no encontrado.');
     if (order.status === 'cancelado' && status !== 'cancelado') throw new AdminError(400, 'No se puede reabrir un pedido cancelado.');
 
     if (status === 'cancelado' && order.status !== 'cancelado') {
-      const items = db.prepare("SELECT product_id, qty FROM order_items WHERE order_id = ? AND kind = 'stock'").all(order.id);
+      const items = await db.prepare("SELECT product_id, qty FROM order_items WHERE order_id = ? AND kind = 'stock'").all(order.id);
       const restore = db.prepare("UPDATE stock SET qty = qty + ?, updated_at = datetime('now') WHERE product_id = ?");
-      for (const it of items) restore.run(it.qty, it.product_id);
+      for (const it of items) await restore.run(it.qty, it.product_id);
     }
 
-    db.prepare('UPDATE orders SET status = ? WHERE id = ?').run(status, order.id);
+    await db.prepare('UPDATE orders SET status = ? WHERE id = ?').run(status, order.id);
     return { folio, status };
   });
 }
@@ -116,7 +117,7 @@ function setOrderStatus(folio, status) {
    si el reembolso falla el pedido NO se cancela (ni se repone stock), para no quedar cancelado y cobrado. */
 async function updateOrderStatus(folio, status) {
   if (!STATUSES.includes(status)) throw new AdminError(400, 'Estado inválido.');
-  const current = db.prepare('SELECT status FROM orders WHERE folio = ?').get(folio);
+  const current = await db.prepare('SELECT status FROM orders WHERE folio = ?').get(folio);
   if (!current) throw new AdminError(404, 'Pedido no encontrado.');
 
   let refunded = false;
@@ -128,19 +129,20 @@ async function updateOrderStatus(folio, status) {
       throw e;
     }
   }
-  return { ...setOrderStatus(folio, status), refunded };
+  return { ...(await setOrderStatus(folio, status)), refunded };
 }
 
-function listStock() {
-  const byId = new Map(db.prepare('SELECT product_id, qty FROM stock').all().map(r => [r.product_id, r.qty]));
+async function listStock() {
+  const rows = await db.prepare('SELECT product_id, qty FROM stock').all();
+  const byId = new Map(rows.map(r => [r.product_id, r.qty]));
   return CATALOG.PRODUCTS.map(p => ({ id: p.id, name: p.name, cut: p.cut, color: p.color, sizes: p.sizes, qty: byId.get(p.id) ?? 0 }));
 }
 
-function setStock(id, qty) {
+async function setStock(id, qty) {
   const n = Number(qty);
   if (!Number.isInteger(n) || n < 0 || n > 9999) throw new AdminError(400, 'La cantidad debe ser un número entero entre 0 y 9999.');
   if (!CATALOG.PRODUCTS.some(p => p.id === id)) throw new AdminError(404, 'Producto no encontrado.');
-  const r = db.prepare("UPDATE stock SET qty = ?, updated_at = datetime('now') WHERE product_id = ?").run(n, id);
+  const r = await db.prepare("UPDATE stock SET qty = ?, updated_at = datetime('now') WHERE product_id = ?").run(n, id);
   if (Number(r.changes) === 0) throw new AdminError(404, 'Producto no encontrado.');
   return { id, qty: n };
 }

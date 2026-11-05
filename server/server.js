@@ -158,7 +158,7 @@ const server = http.createServer(async (req, res) => {
     }
 
     if (url.pathname === '/api/stock' && req.method === 'GET') {
-      const map = {}; admin.listStock().forEach(p => { map[p.id] = p.qty; });
+      const map = {}; (await admin.listStock()).forEach(p => { map[p.id] = p.qty; });
       return json(res, 200, map);
     }
 
@@ -180,7 +180,7 @@ const server = http.createServer(async (req, res) => {
       if (!admin.isAuthed(req)) return json(res, 401, { error: 'No autorizado.' });
 
       if (url.pathname === '/api/admin/orders' && req.method === 'GET') {
-        return json(res, 200, admin.listOrders({
+        return json(res, 200, await admin.listOrders({
           status: url.searchParams.get('status') || '',
           q: url.searchParams.get('q') || '',
           page: url.searchParams.get('page') || '1'
@@ -189,7 +189,7 @@ const server = http.createServer(async (req, res) => {
 
       const orderMatch = ORDER_DETAIL_RE.exec(url.pathname);
       if (orderMatch && req.method === 'GET') {
-        try { return json(res, 200, admin.getOrder(decodeURIComponent(orderMatch[1]))); }
+        try { return json(res, 200, await admin.getOrder(decodeURIComponent(orderMatch[1]))); }
         catch (e) { if (!sendKnownError(res, e, admin.AdminError)) throw e; }
         return;
       }
@@ -202,14 +202,14 @@ const server = http.createServer(async (req, res) => {
         return;
       }
 
-      if (url.pathname === '/api/admin/stock' && req.method === 'GET') return json(res, 200, admin.listStock());
+      if (url.pathname === '/api/admin/stock' && req.method === 'GET') return json(res, 200, await admin.listStock());
 
       const stockMatch = STOCK_ITEM_RE.exec(url.pathname);
       if (stockMatch && req.method === 'PUT') {
         if (!isJSON(req)) return json(res, 400, { error: 'Formato de petición inválido.' });
         let body;
         try { body = await readJSON(req, ADMIN_BODY_MAX); } catch (e) { return json(res, 400, { error: 'No se pudo leer la petición.' }); }
-        try { return json(res, 200, admin.setStock(decodeURIComponent(stockMatch[1]), body.qty)); }
+        try { return json(res, 200, await admin.setStock(decodeURIComponent(stockMatch[1]), body.qty)); }
         catch (e) { if (!sendKnownError(res, e, admin.AdminError)) throw e; }
         return;
       }
@@ -235,17 +235,21 @@ const server = http.createServer(async (req, res) => {
 });
 
 /* Limpia los borradores de pago sin pedido con más de 24 horas (al arrancar y cada 6 horas) */
-function purgeStaleCheckouts() {
+async function purgeStaleCheckouts() {
   try {
-    const n = orders.purgeStaleCheckouts(24);
+    const n = await orders.purgeStaleCheckouts(24);
     if (n) log.info('orders', `Se eliminaron ${n} borradores de pago sin completar con más de 24 horas.`);
   } catch (e) { log.error('orders', log.detail(e)); }
 }
 
 process.on('unhandledRejection', e => log.error('process', `Promesa rechazada sin manejar: ${log.detail(e)}`));
 
-server.listen(PORT, () => {
-  log.info('server', `Trama Studio en http://localhost:${PORT}  (administrador: ${admin.configured() ? 'activo' : 'sin configurar'}, pagos: ${payments.configured() ? 'activos' : 'sin configurar'}${TRUST_PROXY ? `, proxies de confianza: ${TRUST_PROXY}` : ''})`);
-  purgeStaleCheckouts();
-  setInterval(purgeStaleCheckouts, 6 * 36e5).unref();
-});
+if (require.main === module) {
+  server.listen(PORT, () => {
+    log.info('server', `Trama Studio en http://localhost:${PORT}  (administrador: ${admin.configured() ? 'activo' : 'sin configurar'}, pagos: ${payments.configured() ? 'activos' : 'sin configurar'}${TRUST_PROXY ? `, proxies de confianza: ${TRUST_PROXY}` : ''})`);
+    purgeStaleCheckouts();
+    setInterval(purgeStaleCheckouts, 6 * 36e5).unref();
+  });
+}
+
+module.exports = server;

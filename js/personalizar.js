@@ -11,7 +11,12 @@ const st = {
   textColor: saved.textColor || TEXT_COLORS[0].hex,
   side: 'front',
   size: SIZES.includes(saved.size) ? saved.size : 'M',
-  qty: saved.qty || 1
+  qty: saved.qty || 1,
+  imgScale: saved.imgScale != null ? +saved.imgScale : 1,
+  imgX: saved.imgX != null ? +saved.imgX : 0,
+  imgY: saved.imgY != null ? +saved.imgY : 0,
+  textScale: saved.textScale != null ? +saved.textScale : 1,
+  textY: saved.textY != null ? +saved.textY : 0
 };
 const $ = id => document.getElementById(id), status = $('status');
 
@@ -24,18 +29,24 @@ $('preview').hidden = !!viewer;
 
 const currentFont = () => FONTS.find(f => f.id === st.fontId) || FONTS[0];
 const unitPrice = () => CUTS[st.cut].price + PRINT_FEE;
-const hasArt = () => !!st.img || (st.presetKey && st.presetKey !== 'ninguno') || !!st.text;
+const hasImageArt = () => !!st.img || (st.presetKey && st.presetKey !== 'ninguno' && PRESETS[st.presetKey] && PRESETS[st.presetKey].inner);
+const hasCustomText = () => (st.text || '').trim().length > 0;
+const hasArt = () => hasImageArt() || hasCustomText();
 
 function markSide() { $('sides').querySelectorAll('[data-side]').forEach(b => b.setAttribute('aria-pressed', b.dataset.side === st.side)); }
 
-/* Regenera el diseño 3D solo cuando cambia el arte o el texto (no con cada cambio de talla o cantidad) */
+/* Regenera el diseño 3D solo cuando cambian el arte, el texto o sus ajustes de tamaño/posición */
 let printKey = null;
 function syncPrint() {
-  const key = [st.img, st.presetKey, st.text, st.fontId, st.textColor];
+  const key = [st.img, st.presetKey, st.text, st.fontId, st.textColor, st.imgScale, st.imgX, st.imgY, st.textScale, st.textY];
   if (printKey && key.every((v, i) => v === printKey[i])) return;
   printKey = key;
-  viewer.setPrint({ img: st.img, preset: st.img ? null : st.presetKey, text: st.text, font: currentFont(), textColor: st.textColor })
-    .catch(err => { status.className = 'status err'; status.textContent = typeof err === 'string' ? err : 'No se pudo generar el diseño.'; });
+  viewer.setPrint({
+    img: st.img, preset: st.img ? null : st.presetKey,
+    text: st.text, font: currentFont(), textColor: st.textColor,
+    imgScale: st.imgScale, imgX: st.imgX, imgY: st.imgY,
+    textScale: st.textScale, textY: st.textY
+  }).catch(err => { status.className = 'status err'; status.textContent = typeof err === 'string' ? err : 'No se pudo generar el diseño.'; });
 }
 
 function render() {
@@ -46,7 +57,9 @@ function render() {
   } else {
     $('preview').innerHTML = shirtSVG(st.color, st.cut, {
       img: st.img, presetKey: st.img ? null : st.presetKey, side: st.side,
-      text: st.text, font: currentFont(), textColor: st.textColor
+      text: st.text, font: currentFont(), textColor: st.textColor,
+      imgScale: st.imgScale, imgX: st.imgX, imgY: st.imgY,
+      textScale: st.textScale, textY: st.textY
     });
   }
   $('preview-note').textContent = hasArt() ? 'Vista previa de tu playera personalizada.' : 'Elige corte y color. Tu diseño aparecerá aquí.';
@@ -62,6 +75,35 @@ function render() {
   $('qty-val').textContent = st.qty;
   $('price-total').textContent = `$${unitPrice() * st.qty}`;
 
+  // Actualización de controles de imagen (tamaño y posición)
+  const showImgAdj = hasImageArt();
+  if ($('img-adjust')) {
+    $('img-adjust').hidden = !showImgAdj;
+    if (showImgAdj) {
+      if (document.activeElement !== $('img-scale')) $('img-scale').value = st.imgScale;
+      $('img-scale-val').textContent = Math.round(st.imgScale * 100) + '%';
+      if (document.activeElement !== $('img-x')) $('img-x').value = st.imgX;
+      $('img-x-val').textContent = st.imgX === 0 ? 'Centro (0)' : `${st.imgX > 0 ? '+' : ''}${st.imgX} px`;
+      if (document.activeElement !== $('img-y')) $('img-y').value = st.imgY;
+      $('img-y-val').textContent = st.imgY === 0 ? 'Centro (0)' : `${st.imgY > 0 ? '+' : ''}${st.imgY} px`;
+    }
+  }
+
+  // Actualización de controles de caligrafía (tamaño y posición vertical)
+  const showTxtAdj = hasCustomText();
+  if ($('text-adjust')) {
+    $('text-adjust').hidden = !showTxtAdj;
+    if (showTxtAdj) {
+      if (document.activeElement !== $('text-scale')) $('text-scale').value = st.textScale;
+      $('text-scale-val').textContent = Math.round(st.textScale * 100) + '%';
+      if (document.activeElement !== $('text-y')) $('text-y').value = st.textY;
+      $('text-y-val').textContent = st.textY === 0 ? '0 px' : `${st.textY > 0 ? '+' : ''}${st.textY} px`;
+      $('text-scale-pills').querySelectorAll('[data-text-scale]').forEach(b => {
+        b.setAttribute('aria-pressed', Math.abs(+b.dataset.textScale - st.textScale) < 0.08);
+      });
+    }
+  }
+
   saveDesign(st);
 }
 
@@ -76,6 +118,7 @@ $('file').addEventListener('change', async e => {
     st.img = await loadDesign(file);
     st.fileName = file.name;
     st.presetKey = null;
+    st.imgScale = 1; st.imgX = 0; st.imgY = 0;
     $('file-name').textContent = file.name;
     $('file-loaded').hidden = false;
     render();
@@ -84,6 +127,7 @@ $('file').addEventListener('change', async e => {
 });
 $('file-remove').addEventListener('click', () => {
   st.img = null; st.fileName = ''; st.presetKey = 'ninguno';
+  st.imgScale = 1; st.imgX = 0; st.imgY = 0;
   $('file').value = ''; $('file-loaded').hidden = true;
   render();
 });
@@ -95,10 +139,60 @@ $('presets').addEventListener('click', e => {
   render();
 });
 
+// Controles de ajuste de imagen: escala, X y Y
+if ($('img-scale')) {
+  $('img-scale').addEventListener('input', e => { st.imgScale = +e.target.value; render(); });
+  $('img-scale-minus').addEventListener('click', () => { st.imgScale = Math.max(0.4, +(st.imgScale - 0.1).toFixed(2)); render(); });
+  $('img-scale-plus').addEventListener('click', () => { st.imgScale = Math.min(1.8, +(st.imgScale + 0.1).toFixed(2)); render(); });
+  $('img-x').addEventListener('input', e => { st.imgX = +e.target.value; render(); });
+  $('img-x-minus').addEventListener('click', () => { st.imgX = Math.max(-160, st.imgX - 10); render(); });
+  $('img-x-plus').addEventListener('click', () => { st.imgX = Math.min(160, st.imgX + 10); render(); });
+  $('img-y').addEventListener('input', e => { st.imgY = +e.target.value; render(); });
+  $('img-y-minus').addEventListener('click', () => { st.imgY = Math.max(-140, st.imgY - 10); render(); });
+  $('img-y-plus').addEventListener('click', () => { st.imgY = Math.min(140, st.imgY + 10); render(); });
+
+  $('img-pos-pills').addEventListener('click', e => {
+    const b = e.target.closest('[data-img-pos]'); if (!b) return;
+    const pos = b.dataset.imgPos;
+    if (pos === 'center') { st.imgX = 0; st.imgY = 0; }
+    else if (pos === 'chest-left') { st.imgX = -110; st.imgY = -70; st.imgScale = Math.min(st.imgScale, 0.7); }
+    else if (pos === 'chest-high') { st.imgX = 0; st.imgY = -80; }
+    else if (pos === 'chest-low') { st.imgX = 0; st.imgY = 70; }
+    render();
+  });
+
+  $('img-reset-ctrls').addEventListener('click', () => {
+    st.imgScale = 1; st.imgX = 0; st.imgY = 0;
+    render();
+    toast('Posición y tamaño de imagen restablecidos.');
+  });
+}
+
 $('text-input').value = st.text;
 $('text-input').addEventListener('input', e => { st.text = e.target.value; render(); });
 $('fonts').addEventListener('click', e => { const b = e.target.closest('[data-font]'); if (b) { st.fontId = b.dataset.font; render(); } });
 $('text-colors').addEventListener('click', e => { const b = e.target.closest('[data-textcolor]'); if (b) { st.textColor = b.dataset.textcolor; render(); } });
+
+// Controles de ajuste de caligrafía: tamaño y posición vertical
+if ($('text-scale')) {
+  $('text-scale').addEventListener('input', e => { st.textScale = +e.target.value; render(); });
+  $('text-scale-minus').addEventListener('click', () => { st.textScale = Math.max(0.5, +(st.textScale - 0.1).toFixed(2)); render(); });
+  $('text-scale-plus').addEventListener('click', () => { st.textScale = Math.min(1.8, +(st.textScale + 0.1).toFixed(2)); render(); });
+  $('text-scale-pills').addEventListener('click', e => {
+    const b = e.target.closest('[data-text-scale]'); if (!b) return;
+    st.textScale = +b.dataset.textScale;
+    render();
+  });
+  $('text-y').addEventListener('input', e => { st.textY = +e.target.value; render(); });
+  $('text-y-minus').addEventListener('click', () => { st.textY = Math.max(-120, st.textY - 10); render(); });
+  $('text-y-plus').addEventListener('click', () => { st.textY = Math.min(120, st.textY + 10); render(); });
+
+  $('text-reset-ctrls').addEventListener('click', () => {
+    st.textScale = 1; st.textY = 0;
+    render();
+    toast('Tamaño de letra restablecido.');
+  });
+}
 
 $('sizes').addEventListener('click', e => { const b = e.target.closest('[data-size]'); if (b) { st.size = b.dataset.size; render(); } });
 $('qty-minus').addEventListener('click', () => { if (st.qty > 1) { st.qty--; render(); } });
@@ -127,7 +221,11 @@ if (viewer) {
 }
 
 $('reset').addEventListener('click', () => {
-  Object.assign(st, { cut: 'regular', color: '#2F4BFF', img: null, fileName: '', presetKey: 'ninguno', text: '', fontId: FONTS[0].id, textColor: TEXT_COLORS[0].hex, side: 'front', size: 'M', qty: 1 });
+  Object.assign(st, {
+    cut: 'regular', color: '#2F4BFF', img: null, fileName: '', presetKey: 'ninguno',
+    text: '', fontId: FONTS[0].id, textColor: TEXT_COLORS[0].hex, side: 'front', size: 'M', qty: 1,
+    imgScale: 1, imgX: 0, imgY: 0, textScale: 1, textY: 0
+  });
   $('text-input').value = ''; $('file').value = ''; $('file-loaded').hidden = true; $('notas').value = '';
   status.className = 'status'; status.textContent = '';
   render();
@@ -155,7 +253,12 @@ $('form').addEventListener('submit', async e => {
     presetKey: st.img ? null : st.presetKey,
     thumb: thumbSrc,
     side: st.side,
-    notes: $('notas').value.trim()
+    notes: $('notas').value.trim(),
+    imgScale: st.imgScale,
+    imgX: st.imgX,
+    imgY: st.imgY,
+    textScale: st.textScale,
+    textY: st.textY
   });
 
   status.textContent = 'Agregada al carrito. Puedes seguir personalizando o ir a pagar.';

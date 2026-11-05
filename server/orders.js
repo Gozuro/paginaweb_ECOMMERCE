@@ -100,7 +100,7 @@ function prepareOrder(body) {
   return { customer, payMethod, promo, items, subtotal, discount, shipping, total };
 }
 
-function insertOrder(order) {
+async function insertOrder(order) {
   const { customer, payMethod, promo, items, subtotal, discount, shipping, total } = order;
   /* Suma las cantidades por producto para descontar el stock en un solo UPDATE por producto */
   const need = new Map();
@@ -108,7 +108,7 @@ function insertOrder(order) {
 
   const dec = db.prepare("UPDATE stock SET qty = qty - ?, updated_at = datetime('now') WHERE product_id = ? AND qty >= ?");
   for (const [productId, qty] of need) {
-    const r = dec.run(qty, productId, qty);
+    const r = await dec.run(qty, productId, qty);
     if (Number(r.changes) === 0) {
       const name = (items.find(i => i.productId === productId) || {}).name || productId;
       throw new OrderError(409, `Ya no hay stock suficiente de "${name}".`, 'out_of_stock');
@@ -120,14 +120,14 @@ function insertOrder(order) {
         pay_method, promo_code, subtotal, discount, shipping, total)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
-  const r = insert.run(
+  const r = await insert.run(
     customer.email, customer.firstName, customer.lastName, customer.phone,
     customer.address, customer.city, customer.state, customer.zip,
     payMethod, promo, subtotal, discount, shipping, total
   );
   const orderId = Number(r.lastInsertRowid);
   const folio = 'TS-' + String(orderId).padStart(5, '0');
-  db.prepare('UPDATE orders SET folio = ? WHERE id = ?').run(folio, orderId);
+  await db.prepare('UPDATE orders SET folio = ? WHERE id = ?').run(folio, orderId);
 
   const insertItem = db.prepare(`
       INSERT INTO order_items (order_id, kind, product_id, name, cut, color, size, qty, unit_price,
@@ -135,14 +135,14 @@ function insertOrder(order) {
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
   for (const it of items) {
-    insertItem.run(orderId, it.kind, it.productId, it.name, it.cut, it.color, it.size, it.qty, it.unitPrice,
+    await insertItem.run(orderId, it.kind, it.productId, it.name, it.cut, it.color, it.size, it.qty, it.unitPrice,
       it.text, it.fontId, it.textColor, it.presetKey, it.notes, it.thumb);
   }
 
   return { folio, total };
 }
 
-function createOrder(body) {
+async function createOrder(body) {
   const order = prepareOrder(body);
   return tx(() => insertOrder(order));
 }
@@ -156,53 +156,55 @@ function quoteOrder(body) {
   };
 }
 
-function savePendingCheckout(sessionId, body) {
+async function savePendingCheckout(sessionId, body) {
   if (!/^cs_test_[A-Za-z0-9]+$/.test(sessionId)) throw new OrderError(400, 'La sesión de pago no es válida.');
   prepareOrder(body);
-  db.prepare('INSERT INTO checkout_sessions (session_id, payload) VALUES (?, ?)').run(sessionId, JSON.stringify(body));
+  await db.prepare('INSERT INTO checkout_sessions (session_id, payload) VALUES (?, ?)').run(sessionId, JSON.stringify(body));
 }
 
-function completePaidCheckout(session) {
+async function completePaidCheckout(session) {
   if (!session || !/^cs_test_[A-Za-z0-9]+$/.test(session.id)) throw new OrderError(400, 'La sesión de pago no es válida.');
   if (session.payment_status !== 'paid') throw new OrderError(409, 'El pago aún no está confirmado.');
-  return tx(() => {
-    const pending = db.prepare('SELECT payload, folio FROM checkout_sessions WHERE session_id = ?').get(session.id);
+  return tx(async () => {
+    const pending = await db.prepare('SELECT payload, folio FROM checkout_sessions WHERE session_id = ?').get(session.id);
     if (!pending) throw new OrderError(503, 'El pedido todavía no está listo. Intenta de nuevo.');
     const order = prepareOrder(JSON.parse(pending.payload));
     if (session.mode !== 'payment' || session.currency !== 'mxn' || session.amount_total !== order.total * 100) {
       throw new OrderError(409, 'El total confirmado por Stripe no coincide con el pedido.');
     }
     if (pending.folio) {
-      const existing = db.prepare('SELECT email, total FROM orders WHERE folio = ?').get(pending.folio);
+      const existing = await db.prepare('SELECT email, total FROM orders WHERE folio = ?').get(pending.folio);
       return { folio: pending.folio, email: existing.email, total: existing.total, created: false };
     }
 
-    const result = insertOrder(order);
-    db.prepare("UPDATE orders SET status = 'pagado' WHERE folio = ?").run(result.folio);
-    db.prepare('UPDATE checkout_sessions SET folio = ? WHERE session_id = ?').run(result.folio, session.id);
+    const result = await insertOrder(order);
+    await db.prepare("UPDATE orders SET status = 'pagado' WHERE folio = ?").run(result.folio);
+    await db.prepare('UPDATE checkout_sessions SET folio = ? WHERE session_id = ?').run(result.folio, session.id);
     return { ...result, email: order.customer.email, created: true, order };
   });
 }
 
 /* Borrador de pago de una sesión de Stripe (undefined si no existe). `folio` solo se llena cuando ya hay pedido */
-function getPendingCheckout(sessionId) {
+async function getPendingCheckout(sessionId) {
   return db.prepare('SELECT session_id, folio, created_at FROM checkout_sessions WHERE session_id = ?').get(sessionId);
 }
 
 /* Descarta el borrador de una sesión que expiró o se abandonó. Nunca toca los que ya tienen pedido. */
-function discardPendingCheckout(sessionId) {
-  return Number(db.prepare('DELETE FROM checkout_sessions WHERE session_id = ? AND folio IS NULL').run(sessionId).changes);
+async function discardPendingCheckout(sessionId) {
+  const r = await db.prepare('DELETE FROM checkout_sessions WHERE session_id = ? AND folio IS NULL').run(sessionId);
+  return Number(r.changes);
 }
 
 /* Limpia borradores sin pedido con más de `hours` horas. Devuelve cuántos borró. */
-function purgeStaleCheckouts(hours = 24) {
+async function purgeStaleCheckouts(hours = 24) {
   const h = Math.max(1, Math.floor(Number(hours)) || 24);
-  return Number(db.prepare("DELETE FROM checkout_sessions WHERE folio IS NULL AND created_at < datetime('now', ?)").run(`-${h} hours`).changes);
+  const r = await db.prepare("DELETE FROM checkout_sessions WHERE folio IS NULL AND created_at < datetime('now', ?)").run(`-${h} hours`);
+  return Number(r.changes);
 }
 
 /* Sesión de Stripe que originó un pedido (undefined para pedidos que no pasaron por Stripe) */
-function findCheckoutSessionByFolio(folio) {
-  const row = db.prepare('SELECT session_id FROM checkout_sessions WHERE folio = ?').get(folio);
+async function findCheckoutSessionByFolio(folio) {
+  const row = await db.prepare('SELECT session_id FROM checkout_sessions WHERE folio = ?').get(folio);
   return row ? row.session_id : undefined;
 }
 

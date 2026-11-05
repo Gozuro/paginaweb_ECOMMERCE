@@ -90,7 +90,21 @@ function presetToImage(key, size = 480) {
 
 /* Une el arte (archivo o estampado) y el texto personalizado en un solo PNG.
    Se usa para la calcomanía de la vista 3D, que solo puede recibir una imagen. */
-async function composePrint({ img, preset, text, font, textColor } = {}) {
+let _cachedPrintSrc = null, _cachedPrintImg = null;
+function getPrintImage(src) {
+  if (src === _cachedPrintSrc && _cachedPrintImg) return Promise.resolve(_cachedPrintImg);
+  return loadImage(src).then(im => {
+    _cachedPrintSrc = src;
+    _cachedPrintImg = im;
+    return im;
+  });
+}
+
+async function composePrint({
+  img, preset, text, font, textColor,
+  imgScale = 1, imgX = 0, imgY = 0,
+  textScale = 1, textX = 0, textY = 0
+} = {}) {
   let src = img || null;
   if (!src && preset && preset !== 'ninguno') src = await presetToImage(preset, 480);
   if (!src && !text) return null;
@@ -106,10 +120,13 @@ async function composePrint({ img, preset, text, font, textColor } = {}) {
   const g = c.getContext('2d');
 
   if (src) {
-    const im = await loadImage(src);
+    const im = await getPrintImage(src);
     const boxTop = 30, boxSize = text ? 440 : 560;
-    const r = Math.min(boxSize / im.width, boxSize / im.height), iw = im.width * r, ih = im.height * r;
-    g.drawImage(im, (C - iw) / 2, boxTop + (boxSize - ih) / 2, iw, ih);
+    const r = Math.min(boxSize / im.width, boxSize / im.height) * (imgScale || 1);
+    const iw = im.width * r, ih = im.height * r;
+    const x = (C - iw) / 2 + (imgX || 0);
+    const y = boxTop + (boxSize - ih) / 2 + (imgY || 0);
+    g.drawImage(im, x, y, iw, ih);
   }
 
   if (text) {
@@ -118,11 +135,16 @@ async function composePrint({ img, preset, text, font, textColor } = {}) {
     g.font = fontAt(100);
     const fit = fitText(text, f, C - 60, src ? 150 : 400, src ? 72 : 150, s => g.measureText(s).width / 100);
     if (fit) {
-      const step = fit.fs * fit.lh, cy = src ? 556 : C / 2, y0 = cy - (fit.lines.length * step) / 2 + step / 2;
-      g.font = fontAt(Math.round(fit.fs));
+      const baseFs = fit.fs;
+      const actualFs = Math.max(12, Math.min(220, Math.round(baseFs * (textScale || 1))));
+      const step = actualFs * fit.lh;
+      const cy = (src ? 556 : C / 2) + (textY || 0);
+      const cx = C / 2 + (textX || 0);
+      const y0 = cy - (fit.lines.length * step) / 2 + step / 2;
+      g.font = fontAt(actualFs);
       g.fillStyle = textColor || '#101B33';
       g.textAlign = 'center'; g.textBaseline = 'middle';
-      fit.lines.forEach((ln, i) => g.fillText(ln, C / 2, y0 + i * step));
+      fit.lines.forEach((ln, i) => g.fillText(ln, cx, y0 + i * step));
     }
   }
 

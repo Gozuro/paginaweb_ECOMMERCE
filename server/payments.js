@@ -85,7 +85,7 @@ async function createCheckoutSession(body) {
 
   const session = await stripeRequest('checkout/sessions', { params });
   if (!session.id || !session.url) throw new PaymentError(502, 'Stripe no devolvió una sesión de pago válida.');
-  savePendingCheckout(session.id, body);
+  await savePendingCheckout(session.id, body);
   return { url: session.url };
 }
 
@@ -122,7 +122,7 @@ async function refundPayment(paymentIntent, sessionId, reason) {
 /* Reembolsa el pago de un pedido existente (cancelación desde el panel). Los pedidos que no pasaron
    por Stripe (p. ej. creados antes de integrar pagos) no tienen nada que reembolsar. */
 async function refundOrderPayment(folio) {
-  const sessionId = findCheckoutSessionByFolio(folio);
+  const sessionId = await findCheckoutSessionByFolio(folio);
   if (!sessionId) return { refunded: false, reason: 'no_stripe_payment' };
   const session = await retrieveCheckoutSession(sessionId);
   if (session.payment_status !== 'paid') return { refunded: false, reason: 'not_paid' };
@@ -137,13 +137,13 @@ async function refundOrderPayment(folio) {
    - Si ya se reembolsó el pago (aunque haya sido desde el panel de Stripe) no se crea pedido.
    - Si el pago llegó pero ya no hay stock, se reembolsa solo para no cobrar sin entregar. */
 async function finalizePaidSession(session) {
-  const draft = session.payment_status === 'paid' ? getPendingCheckout(session.id) : null;
+  const draft = session.payment_status === 'paid' ? await getPendingCheckout(session.id) : null;
   if (draft && !draft.folio && paymentIntentId(session.payment_intent) && await hasActiveRefund(session.payment_intent)) {
     throw new OrderError(409, 'Este pago ya fue reembolsado, por lo que no se generó ningún pedido.', 'refunded');
   }
 
   try {
-    const result = completePaidCheckout(session);
+    const result = await completePaidCheckout(session);
     if (result.created) log.info('payments', `Pedido ${result.folio} creado desde la sesión ${session.id}.`);
     return result;
   } catch (e) {
@@ -205,7 +205,7 @@ async function handleWebhook(rawBody, signature) {
       throw e;
     }
   } else if (event.type === 'checkout.session.expired' && object && typeof object.id === 'string') {
-    if (discardPendingCheckout(object.id)) log.info('payments', `Sesión de pago expirada, borrador descartado: ${object.id}.`);
+    if (await discardPendingCheckout(object.id)) log.info('payments', `Sesión de pago expirada, borrador descartado: ${object.id}.`);
   }
   return { received: true };
 }

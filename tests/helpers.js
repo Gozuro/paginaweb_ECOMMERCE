@@ -22,15 +22,23 @@ function loadBackend() {
     root, db, CATALOG,
     orders: load('orders.js'), payments: load('payments.js'), admin: load('admin.js'),
     /* Deja la base como recién creada: sin pedidos ni borradores y con el stock inicial del catálogo */
-    reset() {
-      db.exec('DELETE FROM order_items; DELETE FROM orders; DELETE FROM checkout_sessions;');
+    async reset() {
+      await db.exec('DELETE FROM order_items; DELETE FROM orders; DELETE FROM checkout_sessions;');
       const set = db.prepare('UPDATE stock SET qty = ? WHERE product_id = ?');
-      for (const p of CATALOG.PRODUCTS) set.run(p.stock, p.id);
+      for (const p of CATALOG.PRODUCTS) await set.run(p.stock, p.id);
     },
-    stock(productId) { return db.prepare('SELECT qty FROM stock WHERE product_id = ?').get(productId).qty; },
-    setStock(productId, qty) { db.prepare('UPDATE stock SET qty = ? WHERE product_id = ?').run(qty, productId); },
-    orderCount() { return db.prepare('SELECT COUNT(*) AS n FROM orders').get().n; },
-    close() {
+    async stock(productId) {
+      const row = await db.prepare('SELECT qty FROM stock WHERE product_id = ?').get(productId);
+      return row ? row.qty : undefined;
+    },
+    async setStock(productId, qty) {
+      await db.prepare('UPDATE stock SET qty = ? WHERE product_id = ?').run(qty, productId);
+    },
+    async orderCount() {
+      const row = await db.prepare('SELECT COUNT(*) AS n FROM orders').get();
+      return row ? row.n : 0;
+    },
+    async close() {
       try { db.close(); } catch (e) {}
       try { fs.rmSync(root, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 }); } catch (e) {}
     }
