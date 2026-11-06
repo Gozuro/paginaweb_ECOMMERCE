@@ -1,0 +1,212 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Bricolage+Grotesque:wght@700;800&family=Figtree:wght@400;600;700&family=Pacifico&family=Playfair+Display:wght@800&family=Space+Mono:wght@700&display=swap" rel="stylesheet"><link rel="stylesheet" href="css/base.css"><link rel="stylesheet" href="css/cart.css"><title>Personaliza tu playera en 3D | Trama Studio</title>
+<meta name="description" content="Elige corte, color, arte y texto y míralo en 3D. Mira el precio al momento y agrega tu playera al carrito."><link rel="stylesheet" href="css/personalizar.css"></head>
+<body data-page="custom"><div id="site-header"></div>
+<main class="wrap studio">
+<h1 class="studio-title">Personaliza tu playera</h1>
+
+<div class="studio-grid">
+  <div class="studio-preview stitch">
+    <div class="preview-toolbar seg" id="sides" role="group" aria-label="Lado de la prenda donde va el diseño">
+      <button type="button" data-side="front" aria-pressed="true">Diseño al frente</button>
+      <button type="button" data-side="back" aria-pressed="false">Diseño en la espalda</button>
+    </div>
+    <div class="stage" id="stage" role="img" aria-label="Playera en 3D. Arrastra para girar; con Ctrl y la rueda se acerca." hidden>
+      <p class="hint">Arrastra para girar. Ctrl + rueda o pellizca para acercar.</p>
+    </div>
+    <div id="preview"></div>
+    <p id="preview-note" class="preview-note">Elige corte y color. Tu diseño aparecerá aquí.</p>
+    <div class="viewer-tools" id="viewer-tools" hidden>
+      <div class="tool-row">
+        <span class="tool-label" id="views-label">Girar</span>
+        <div class="seg" id="views" role="group" aria-labelledby="views-label">
+          <button type="button" data-view="0">Frente</button>
+          <button type="button" data-view="3.14159">Espalda</button>
+          <button type="button" data-view="1.5708">Lado</button>
+          <button type="button" id="spin" aria-pressed="false">Giro automático</button>
+        </div>
+      </div>
+      <div class="tool-row">
+        <span class="tool-label" id="bgs-label">Fondo</span>
+        <div class="swatches swatches-sm" id="bgs" role="group" aria-labelledby="bgs-label">
+          <button type="button" class="swatch" data-bg="claro" style="--c:#E3E8F2" aria-label="Fondo claro" aria-pressed="true"></button>
+          <button type="button" class="swatch" data-bg="oscuro" style="--c:#16203d" aria-label="Fondo oscuro" aria-pressed="false"></button>
+          <button type="button" class="swatch" data-bg="sol" style="--c:#FFD23F" aria-label="Fondo amarillo" aria-pressed="false"></button>
+        </div>
+        <button type="button" class="btn btn-ghost btn-sm" id="open-preview">Ver vista previa</button>
+        <button type="button" class="btn btn-ghost btn-sm" id="shot">Descargar imagen</button>
+      </div>
+    </div>
+  </div>
+
+  <form id="form" class="studio-form" novalidate>
+    <fieldset class="step">
+      <legend><span class="step-num">1</span> Elige el corte</legend>
+      <div class="cut-list" id="cuts"></div>
+    </fieldset>
+
+    <fieldset class="step">
+      <legend><span class="step-num">2</span> Elige el color</legend>
+      <div class="swatches" id="swatches"></div>
+      <p class="selected-note" id="color-note"></p>
+    </fieldset>
+
+    <fieldset class="step">
+      <legend><span class="step-num">3</span> Arte: sube tu diseño o elige un estampado</legend>
+      <label class="drop">
+        <input type="file" id="file" accept="image/*">
+        <strong>Elige una imagen</strong><small>PNG, JPG o SVG, máximo 8 MB</small>
+      </label>
+      <div class="file-loaded" id="file-loaded" hidden>
+        <span id="file-name"></span>
+        <button type="button" class="btn-link" id="file-remove">Quitar</button>
+      </div>
+      <p class="step-sub">O elige un estampado de muestra:</p>
+      <div class="preset-grid" id="presets"></div>
+      <div class="adjust-box stitch-sm" id="img-adjust" hidden>
+        <div class="adjust-head">
+          <span class="adjust-title">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+            Ajustar imagen
+          </span>
+          <button type="button" class="btn-link" id="img-reset-ctrls" title="Centrar y volver al tamaño normal">Restablecer</button>
+        </div>
+
+        <div class="adjust-row">
+          <div class="adjust-label-row">
+            <label for="img-scale">Tamaño de la imagen</label>
+            <span class="adjust-val" id="img-scale-val">100%</span>
+          </div>
+          <div class="adjust-ctrl-bar">
+            <button type="button" class="adjust-step-btn" id="img-scale-minus" aria-label="Reducir tamaño de imagen">−</button>
+            <input type="range" id="img-scale" min="0.4" max="1.8" step="0.05" value="1" aria-label="Tamaño de la imagen">
+            <button type="button" class="adjust-step-btn" id="img-scale-plus" aria-label="Aumentar tamaño de imagen">+</button>
+          </div>
+        </div>
+
+        <div class="adjust-row">
+          <div class="adjust-label-row">
+            <label for="img-x">Posición horizontal (X)</label>
+            <span class="adjust-val" id="img-x-val">Centro (0)</span>
+          </div>
+          <div class="adjust-ctrl-bar">
+            <button type="button" class="adjust-step-btn" id="img-x-minus" aria-label="Mover imagen a la izquierda">←</button>
+            <input type="range" id="img-x" min="-160" max="160" step="2" value="0" aria-label="Posición horizontal de la imagen">
+            <button type="button" class="adjust-step-btn" id="img-x-plus" aria-label="Mover imagen a la derecha">→</button>
+          </div>
+        </div>
+
+        <div class="adjust-row">
+          <div class="adjust-label-row">
+            <label for="img-y">Posición vertical (Y)</label>
+            <span class="adjust-val" id="img-y-val">Centro (0)</span>
+          </div>
+          <div class="adjust-ctrl-bar">
+            <button type="button" class="adjust-step-btn" id="img-y-minus" aria-label="Subir imagen">↑</button>
+            <input type="range" id="img-y" min="-140" max="140" step="2" value="0" aria-label="Posición vertical de la imagen">
+            <button type="button" class="adjust-step-btn" id="img-y-plus" aria-label="Bajar imagen">↓</button>
+          </div>
+        </div>
+
+        <div class="adjust-presets">
+          <span class="adjust-sublabel">Atajos de posición:</span>
+          <div class="preset-pill-group" id="img-pos-pills">
+            <button type="button" class="preset-pill" data-img-pos="center">Centro</button>
+            <button type="button" class="preset-pill" data-img-pos="chest-left">Pecho izq.</button>
+            <button type="button" class="preset-pill" data-img-pos="chest-high">Pecho alto</button>
+            <button type="button" class="preset-pill" data-img-pos="chest-low">Abajo</button>
+          </div>
+        </div>
+      </div>
+    </fieldset>
+
+    <fieldset class="step">
+      <legend><span class="step-num">4</span> Añade texto (opcional)</legend>
+      <label for="text-input" class="visually-hidden">Frase o nombre a estampar</label>
+      <input type="text" id="text-input" maxlength="24" placeholder="Ej. HECHO A MANO">
+      <p class="step-sub">Tipografía</p>
+      <div class="font-list" id="fonts"></div>
+      <p class="step-sub">Color del texto</p>
+      <div class="swatches swatches-sm" id="text-colors"></div>
+
+      <div class="adjust-box stitch-sm" id="text-adjust" hidden>
+        <div class="adjust-head">
+          <span class="adjust-title">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="4 7 4 4 20 4 20 7"/><line x1="9" y1="20" x2="15" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/></svg>
+            Tamaño de la caligrafía
+          </span>
+          <button type="button" class="btn-link" id="text-reset-ctrls" title="Restablecer tamaño de letra">Restablecer</button>
+        </div>
+
+        <div class="adjust-row">
+          <div class="adjust-label-row">
+            <label for="text-scale">Tamaño de la letra</label>
+            <span class="adjust-val" id="text-scale-val">100%</span>
+          </div>
+          <div class="adjust-ctrl-bar">
+            <button type="button" class="adjust-step-btn" id="text-scale-minus" aria-label="Reducir tamaño de letra">−</button>
+            <input type="range" id="text-scale" min="0.5" max="1.8" step="0.05" value="1" aria-label="Tamaño de la letra">
+            <button type="button" class="adjust-step-btn" id="text-scale-plus" aria-label="Aumentar tamaño de letra">+</button>
+          </div>
+          <div class="preset-pill-group" id="text-scale-pills">
+            <button type="button" class="preset-pill" data-text-scale="0.65">Chica</button>
+            <button type="button" class="preset-pill" data-text-scale="1.0" aria-pressed="true">Normal</button>
+            <button type="button" class="preset-pill" data-text-scale="1.35">Grande</button>
+            <button type="button" class="preset-pill" data-text-scale="1.7">Extra</button>
+          </div>
+        </div>
+
+        <div class="adjust-row">
+          <div class="adjust-label-row">
+            <label for="text-y">Posición vertical de la letra (Y)</label>
+            <span class="adjust-val" id="text-y-val">0 px</span>
+          </div>
+          <div class="adjust-ctrl-bar">
+            <button type="button" class="adjust-step-btn" id="text-y-minus" aria-label="Subir texto">↑</button>
+            <input type="range" id="text-y" min="-120" max="120" step="2" value="0" aria-label="Posición vertical de la letra">
+            <button type="button" class="adjust-step-btn" id="text-y-plus" aria-label="Bajar texto">↓</button>
+          </div>
+        </div>
+      </div>
+    </fieldset>
+
+    <fieldset class="step">
+      <legend><span class="step-num">5</span> Talla y cantidad</legend>
+      <div class="size-row">
+        <div class="size-pills" id="sizes"></div>
+        <div class="qty">
+          <button type="button" id="qty-minus" aria-label="Disminuir cantidad">-</button>
+          <span id="qty-val">1</span>
+          <button type="button" id="qty-plus" aria-label="Aumentar cantidad">+</button>
+        </div>
+      </div>
+    </fieldset>
+
+    <div class="form-field">
+      <label for="notas">Notas (opcional)</label>
+      <textarea id="notas" name="notas" rows="2" placeholder="Posición del diseño, tamaño, estampado en espalda..."></textarea>
+    </div>
+
+    <div class="status" id="status" role="status"></div>
+
+    <div class="studio-summary">
+      <span>Total</span>
+      <strong id="price-total">$0</strong>
+    </div>
+
+    <div class="actions">
+      <button type="button" class="btn btn-ghost" id="reset">Reiniciar</button>
+      <button type="submit" class="btn btn-primary">Agregar al carrito</button>
+    </div>
+  </form>
+</div>
+</main>
+<dialog id="preview-dlg" class="stitch" aria-label="Vista previa de tu playera en 3D">
+  <img id="preview-img" alt="Vista previa de tu playera en 3D">
+  <div class="dlg-actions">
+    <a class="btn btn-primary" id="preview-dl" download="mi-playera-3d.png">Descargar PNG</a>
+    <button type="button" class="btn btn-ghost" id="preview-x">Cerrar</button>
+  </div>
+</dialog>
+<div id="site-footer"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="js/data.js"></script><script src="js/components.js"></script><script src="js/cart.js"></script><script src="js/shirt-model.js"></script><script src="js/viewer3d.js"></script><script src="js/personalizar.js"></script></body></html>
