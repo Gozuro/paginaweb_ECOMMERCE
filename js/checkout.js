@@ -62,8 +62,16 @@ function validate() {
    Por eso, justo antes de salir hacia Stripe se guarda una copia del pedido en sessionStorage
    (solo esta pestaña, se borra al confirmar el pago) y con ella se arma el ticket. */
 const TICKET_KEY = 'trama:ticket-pendiente';
-const STRIPE_TEST_MODE = true; /* igual que el aviso "Modo de prueba de Stripe" de esta página */
+let STRIPE_TEST_MODE = true; /* se actualiza automáticamente con /api/config */
 let ticketOrder = null;
+
+fetch('/api/config').then(r => r.json()).then(cfg => {
+  if (cfg && cfg.testMode === false) {
+    STRIPE_TEST_MODE = false;
+    const disclaimer = document.querySelector('.checkout-disclaimer');
+    if (disclaimer) disclaimer.hidden = true;
+  }
+}).catch(() => {});
 
 function saveTicketSnapshot(customer) {
   try { sessionStorage.setItem(TICKET_KEY, JSON.stringify({ customer, items: Cart.items(), totals: Cart.totals() })); } catch (e) {}

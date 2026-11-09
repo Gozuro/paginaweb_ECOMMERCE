@@ -10,7 +10,8 @@ class PaymentError extends Error {
 }
 
 const testSecret = () => process.env.STRIPE_SECRET_KEY || '';
-const configured = () => /^sk_test_[A-Za-z0-9]+$/.test(testSecret());
+const configured = () => /^(sk|rk)_(test|live)_[A-Za-z0-9]+$/.test(testSecret());
+const isTest = () => !testSecret().startsWith('sk_live_') && !testSecret().startsWith('rk_live_');
 
 /* Las sesiones de pago vencen antes de las 24 h por defecto de Stripe, para que la limpieza de
    borradores (24 h en orders.purgeStaleCheckouts) nunca borre uno que todavía pueda recibir un pago. */
@@ -18,8 +19,8 @@ const SESSION_TTL_SECONDS = 12 * 3600;
 
 function requireStripe() {
   const secret = testSecret();
-  if (!/^sk_test_[A-Za-z0-9]+$/.test(secret)) {
-    throw new PaymentError(503, 'Configura STRIPE_SECRET_KEY con una clave de prueba de Stripe en .env.');
+  if (!/^(sk|rk)_(test|live)_[A-Za-z0-9]+$/.test(secret)) {
+    throw new PaymentError(503, 'Configura STRIPE_SECRET_KEY con una clave válida de Stripe en .env.');
   }
   return secret;
 }
@@ -90,7 +91,7 @@ async function createCheckoutSession(body) {
 }
 
 async function retrieveCheckoutSession(sessionId) {
-  if (typeof sessionId !== 'string' || !/^cs_test_[A-Za-z0-9]+$/.test(sessionId)) {
+  if (typeof sessionId !== 'string' || !/^cs_(test|live)_[A-Za-z0-9]+$/.test(sessionId)) {
     throw new OrderError(400, 'La sesión de pago no es válida.');
   }
   return stripeRequest(`checkout/sessions/${encodeURIComponent(sessionId)}`, { method: 'GET' });
@@ -211,6 +212,6 @@ async function handleWebhook(rawBody, signature) {
 }
 
 module.exports = {
-  configured, createCheckoutSession, completeCheckout, handleWebhook, verifyWebhook,
+  configured, isTest, createCheckoutSession, completeCheckout, handleWebhook, verifyWebhook,
   refundOrderPayment, PaymentError
 };

@@ -120,7 +120,7 @@ const server = http.createServer(async (req, res) => {
   pathname = url.pathname;
 
   try {
-    if (url.pathname === '/api/config') return json(res, 200, { payments: payments.configured() });
+    if (url.pathname === '/api/config') return json(res, 200, { payments: payments.configured(), testMode: payments.isTest() });
 
     if (url.pathname === '/api/stripe/webhook' && req.method === 'POST') {
       let raw;

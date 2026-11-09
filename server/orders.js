@@ -157,13 +157,13 @@ function quoteOrder(body) {
 }
 
 async function savePendingCheckout(sessionId, body) {
-  if (!/^cs_test_[A-Za-z0-9]+$/.test(sessionId)) throw new OrderError(400, 'La sesión de pago no es válida.');
+  if (!/^cs_(test|live)_[A-Za-z0-9]+$/.test(sessionId)) throw new OrderError(400, 'La sesión de pago no es válida.');
   prepareOrder(body);
   await db.prepare('INSERT INTO checkout_sessions (session_id, payload) VALUES (?, ?)').run(sessionId, JSON.stringify(body));
 }
 
 async function completePaidCheckout(session) {
-  if (!session || !/^cs_test_[A-Za-z0-9]+$/.test(session.id)) throw new OrderError(400, 'La sesión de pago no es válida.');
+  if (!session || !/^cs_(test|live)_[A-Za-z0-9]+$/.test(session.id)) throw new OrderError(400, 'La sesión de pago no es válida.');
   if (session.payment_status !== 'paid') throw new OrderError(409, 'El pago aún no está confirmado.');
   return tx(async () => {
     const pending = await db.prepare('SELECT payload, folio FROM checkout_sessions WHERE session_id = ?').get(session.id);
