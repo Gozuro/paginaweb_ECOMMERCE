@@ -132,46 +132,28 @@ function createShirtViewer(stage) {
     decal();
   }
 
-  /* Ajusta los vértices del diseño sobre la superficie curvada y con pliegues de la tela */
-  function applyDecalOffsets(imgX, imgY) {
-    if (!dmesh || !dmesh.geometry || !decalBaseCoords || !decalParams) return;
-    const p = dmesh.geometry.attributes.position;
-    const { ww, hh, top, back } = decalParams;
-    const yc = top - hh / 2;
-    const shiftX = (imgX / 800) * ww * 1.05;
-    const shiftY = -(imgY / 800) * hh * 1.05;
-
-    for (let n = 0; n < p.count; n++) {
-      const baseX = decalBaseCoords[n * 2] + shiftX;
-      const baseY = yc + decalBaseCoords[n * 2 + 1] + shiftY;
-      const X = back ? -baseX : baseX;
-      const z = (back ? -1 : 1) * (model.height(X, baseY) + .009);
-      p.setXYZ(n, X, baseY, z);
-    }
-    p.needsUpdate = true;
-    dmesh.geometry.computeVertexNormals();
-  }
-
-  /* Malla del diseño estampada sobre la tela del pecho o espalda: abarca todo el torso */
+  /* Malla del diseño estampada sobre la tela del pecho o espalda: fija al torso de la playera */
   function decal() {
     if (dmesh) { shirt.remove(dmesh); dmesh.geometry.dispose(); dmesh.material.dispose(); dmesh = null; }
     if (!tex || !shirt) return;
 
     const back = st.side === 'back';
-    const img = tex.image;
-    const ar = (img && img.height && img.width) ? (img.height / img.width) : 1;
-    const top = .82, hem = model.hem;
-    let ww = 1.05, hh = ww * ar;
-    const maxH = Math.min(top - (hem + .04), 1.25);
-    if (hh > maxH) { hh = maxH; ww = hh / ar; }
+    const top = 0.74, bottom = model.hem + 0.12;
+    const hh = top - bottom;
+    const ww = Math.min(model.w * 1.32, 0.82);
 
-    const g = new THREE.PlaneGeometry(ww, hh, 36, 36);
+    const g = new THREE.PlaneGeometry(ww, hh, 32, 36);
     const p = g.attributes.position;
-    decalBaseCoords = [];
+    const yc = (top + bottom) / 2;
+
     for (let n = 0; n < p.count; n++) {
-      decalBaseCoords.push(p.getX(n), p.getY(n));
+      const baseX = p.getX(n);
+      const baseY = yc + p.getY(n);
+      const X = back ? -baseX : baseX;
+      const z = (back ? -1 : 1) * (model.height(X, baseY) + .008);
+      p.setXYZ(n, X, baseY, z);
     }
-    decalParams = { ww, hh, top, back };
+    g.computeVertexNormals();
 
     dmesh = new THREE.Mesh(g, new THREE.MeshStandardMaterial({
       map: tex,
@@ -184,7 +166,6 @@ function createShirtViewer(stage) {
       polygonOffsetUnits: -3
     }));
 
-    applyDecalOffsets(currentPrintOpts.imgX || 0, currentPrintOpts.imgY || 0);
     shirt.add(dmesh);
   }
 
@@ -204,7 +185,12 @@ function createShirtViewer(stage) {
       if (!src) { setTexture(null); return ok(); }
       new THREE.TextureLoader().load(src, t => {
         if (n !== seq) { t.dispose(); return ok(); }
-        t.encoding = THREE.sRGBEncoding; t.anisotropy = 8; setTexture(t); ok();
+        t.encoding = THREE.sRGBEncoding;
+        t.anisotropy = 8;
+        t.wrapS = THREE.ClampToEdgeWrapping;
+        t.wrapT = THREE.ClampToEdgeWrapping;
+        setTexture(t);
+        ok();
       }, undefined, () => fail('No se pudo generar el diseño.'));
     }));
   }
@@ -283,6 +269,9 @@ function createShirtViewer(stage) {
   });
 
   const endDrag = () => {
+    if (tex) {
+      tex.offset.set(0, 0);
+    }
     if (dragMode === 'decal' && callbacks.onDecalDragEnd) {
       callbacks.onDecalDragEnd({
         imgX: currentPrintOpts.imgX,
@@ -305,28 +294,19 @@ function createShirtViewer(stage) {
     }
 
     if (dragMode === 'decal') {
-      const isBack = st.side === 'back';
-      const dirX = isBack ? -1 : 1;
       const dx = e.clientX - dragStartMouse.x;
       const dy = e.clientY - dragStartMouse.y;
-      let curImgX = cl(Math.round(dragStartImgX + dx * dirX * 0.85), -280, 280);
-      const curImgY = cl(Math.round(dragStartImgY + dy * 0.85), -260, 260);
-
-      // Si se arrastra al extremo lateral del cuerpo, salta suavemente a la otra cara
-      if (Math.abs(curImgX) >= 275 && Math.abs(dx) > 70) {
-        const nextSide = st.side === 'front' ? 'back' : 'front';
-        st.side = nextSide;
-        dragStartImgX = curImgX > 0 ? -250 : 250;
-        dragStartMouse.x = e.clientX;
-        decal();
-        turnTo(nextSide === 'back' ? Math.PI : 0);
-        if (callbacks.onSideChange) callbacks.onSideChange(nextSide);
-        return;
-      }
+      // Dirección natural consistente: derecha del ratón mueve a la derecha de la pantalla (tanto en frente como en espalda)
+      const curImgX = cl(Math.round(dragStartImgX + dx * 0.75), -180, 180);
+      const curImgY = cl(Math.round(dragStartImgY + dy * 0.75), -160, 180);
 
       currentPrintOpts.imgX = curImgX;
       currentPrintOpts.imgY = curImgY;
-      applyDecalOffsets(curImgX, curImgY);
+
+      if (tex) {
+        tex.offset.x = -(curImgX - dragStartImgX) / 800;
+        tex.offset.y = (curImgY - dragStartImgY) / 800;
+      }
 
       if (callbacks.onDecalDrag) {
         callbacks.onDecalDrag({ imgX: curImgX, imgY: curImgY, side: st.side });

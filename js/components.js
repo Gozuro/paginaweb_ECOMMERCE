@@ -121,23 +121,23 @@ async function composePrint({
 
   if (src) {
     const im = await getPrintImage(src);
-    const boxSize = text ? 520 : 640;
+    const boxSize = text ? 460 : 540;
     const r = Math.min(boxSize / im.width, boxSize / im.height) * (imgScale || 1);
     const iw = im.width * r, ih = im.height * r;
     const x = (C - iw) / 2 + (imgX || 0);
-    const y = (text ? 60 : (C - ih) / 2) + (imgY || 0);
+    const y = (text ? 110 : (C - ih) / 2) + (imgY || 0);
     g.drawImage(im, x, y, iw, ih);
   }
 
   if (text) {
-    /* Texto: con rango completo en toda la prenda */
+    /* Texto */
     g.font = fontAt(100);
-    const fit = fitText(text, f, C - 80, src ? 180 : 520, src ? 80 : 180, s => g.measureText(s).width / 100);
+    const fit = fitText(text, f, C - 100, src ? 170 : 480, src ? 75 : 160, s => g.measureText(s).width / 100);
     if (fit) {
       const baseFs = fit.fs;
       const actualFs = Math.max(12, Math.min(220, Math.round(baseFs * (textScale || 1))));
       const step = actualFs * fit.lh;
-      const cy = (src ? 660 : C / 2) + (textY || 0);
+      const cy = (src ? 630 : C / 2) + (textY || 0);
       const cx = C / 2 + (textX || 0);
       const y0 = cy - (fit.lines.length * step) / 2 + step / 2;
       g.font = fontAt(actualFs);
