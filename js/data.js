@@ -17,7 +17,7 @@ const COLORS = [
 ];
 
 const PRODUCTS = [
-  { id: 'prod-01', name: 'Básica Cobalto',  cut: 'regular',  color: '#2F4BFF', stock: 24, price: 189, sizes: 'S, M, L, XL' },
+  { id: 'prod-01', name: 'Básica Cobalto',  cut: 'regular',  color: '#2F4BFF', stock: 24, price: 10, sizes: 'S, M, L, XL' },
   { id: 'prod-02', name: 'Básica Negra',    cut: 'regular',  color: '#1B1B1F', stock: 31, price: 189, sizes: 'S, M, L, XL' },
   { id: 'prod-03', name: 'Street Arena',    cut: 'oversize', color: '#E6D5B8', stock: 12, price: 239, sizes: 'M, L, XL' },
   { id: 'prod-04', name: 'Street Bosque',   cut: 'oversize', color: '#2F5D50', stock: 4,  price: 239, sizes: 'M, L' },
