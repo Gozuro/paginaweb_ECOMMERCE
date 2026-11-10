@@ -101,7 +101,7 @@ function shirtModel(c) {
   };
   const line = (a, b, n) => Array.from({ length: n + 1 }, (_, i) => [a[0] + (b[0] - a[0]) * i / n, a[1] + (b[1] - a[1]) * i / n]);
   return {
-    front, back, height, hem, sx,
+    w, front, back, height, hem, sx,
     collar: loop(nk),
     hemLoop: loop(line([-w, hem], [w, hem], 36)),
     cuffs: [loop(line([-ex, .60], [-bx, .36], 14)), loop(line([ex, .60], [bx, .36], 14))]

@@ -188,20 +188,20 @@ if ($('img-scale')) {
   $('img-scale-minus').addEventListener('click', () => { st.imgScale = Math.max(0.4, +(st.imgScale - 0.1).toFixed(2)); render(); });
   $('img-scale-plus').addEventListener('click', () => { st.imgScale = Math.min(1.8, +(st.imgScale + 0.1).toFixed(2)); render(); });
   $('img-x').addEventListener('input', e => { st.imgX = +e.target.value; render(); });
-  $('img-x-minus').addEventListener('click', () => { st.imgX = Math.max(-180, st.imgX - 10); render(); });
-  $('img-x-plus').addEventListener('click', () => { st.imgX = Math.min(180, st.imgX + 10); render(); });
+  $('img-x-minus').addEventListener('click', () => { st.imgX = Math.max(-160, st.imgX - 10); render(); });
+  $('img-x-plus').addEventListener('click', () => { st.imgX = Math.min(160, st.imgX + 10); render(); });
   $('img-y').addEventListener('input', e => { st.imgY = +e.target.value; render(); });
   $('img-y-minus').addEventListener('click', () => { st.imgY = Math.max(-160, st.imgY - 10); render(); });
-  $('img-y-plus').addEventListener('click', () => { st.imgY = Math.min(180, st.imgY + 10); render(); });
+  $('img-y-plus').addEventListener('click', () => { st.imgY = Math.min(160, st.imgY + 10); render(); });
 
   $('img-pos-pills').addEventListener('click', e => {
     const b = e.target.closest('[data-img-pos]'); if (!b) return;
     const pos = b.dataset.imgPos;
     if (pos === 'center') { st.imgX = 0; st.imgY = 0; }
-    else if (pos === 'chest-left') { st.imgX = -120; st.imgY = -90; st.imgScale = 0.6; }
-    else if (pos === 'chest-high') { st.imgX = 0; st.imgY = -120; }
-    else if (pos === 'abdomen') { st.imgX = 0; st.imgY = 80; }
-    else if (pos === 'hem') { st.imgX = 0; st.imgY = 150; }
+    else if (pos === 'chest-left') { st.imgX = -110; st.imgY = -80; st.imgScale = 0.6; }
+    else if (pos === 'chest-high') { st.imgX = 0; st.imgY = -110; }
+    else if (pos === 'abdomen') { st.imgX = 0; st.imgY = 70; }
+    else if (pos === 'hem') { st.imgX = 0; st.imgY = 130; }
     render();
   });
 
@@ -229,21 +229,21 @@ if ($('text-scale')) {
   });
   if ($('text-x')) {
     $('text-x').addEventListener('input', e => { st.textX = +e.target.value; render(); });
-    $('text-x-minus').addEventListener('click', () => { st.textX = Math.max(-180, st.textX - 10); render(); });
-    $('text-x-plus').addEventListener('click', () => { st.textX = Math.min(180, st.textX + 10); render(); });
+    $('text-x-minus').addEventListener('click', () => { st.textX = Math.max(-160, st.textX - 10); render(); });
+    $('text-x-plus').addEventListener('click', () => { st.textX = Math.min(160, st.textX + 10); render(); });
   }
   $('text-y').addEventListener('input', e => { st.textY = +e.target.value; render(); });
   $('text-y-minus').addEventListener('click', () => { st.textY = Math.max(-160, st.textY - 10); render(); });
-  $('text-y-plus').addEventListener('click', () => { st.textY = Math.min(180, st.textY + 10); render(); });
+  $('text-y-plus').addEventListener('click', () => { st.textY = Math.min(160, st.textY + 10); render(); });
 
   if ($('text-pos-pills')) {
     $('text-pos-pills').addEventListener('click', e => {
       const b = e.target.closest('[data-text-pos]'); if (!b) return;
       const pos = b.dataset.textPos;
       if (pos === 'center') { st.textX = 0; st.textY = 0; }
-      else if (pos === 'chest-high') { st.textX = 0; st.textY = -120; }
-      else if (pos === 'chest-left') { st.textX = -120; st.textY = -90; st.textScale = 0.7; }
-      else if (pos === 'bottom') { st.textX = 0; st.textY = 140; }
+      else if (pos === 'chest-high') { st.textX = 0; st.textY = -110; }
+      else if (pos === 'chest-left') { st.textX = -110; st.textY = -80; st.textScale = 0.7; }
+      else if (pos === 'bottom') { st.textX = 0; st.textY = 120; }
       render();
     });
   }

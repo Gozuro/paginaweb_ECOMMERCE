@@ -138,13 +138,13 @@ function createShirtViewer(stage) {
     if (!tex || !shirt) return;
 
     const back = st.side === 'back';
-    const top = 0.74, bottom = model.hem + 0.12;
-    const hh = top - bottom;
-    const ww = Math.min(model.w * 1.32, 0.82);
+    const top = 0.74;
+    const hh = 0.92;
+    const ww = 0.74;
+    const yc = top - hh / 2;
 
     const g = new THREE.PlaneGeometry(ww, hh, 32, 36);
     const p = g.attributes.position;
-    const yc = (top + bottom) / 2;
 
     for (let n = 0; n < p.count; n++) {
       const baseX = p.getX(n);
@@ -297,14 +297,14 @@ function createShirtViewer(stage) {
       const dx = e.clientX - dragStartMouse.x;
       const dy = e.clientY - dragStartMouse.y;
       // Dirección natural consistente: derecha del ratón mueve a la derecha de la pantalla (tanto en frente como en espalda)
-      const curImgX = cl(Math.round(dragStartImgX + dx * 0.75), -180, 180);
-      const curImgY = cl(Math.round(dragStartImgY + dy * 0.75), -160, 180);
+      const curImgX = cl(Math.round(dragStartImgX + dx * 0.75), -160, 160);
+      const curImgY = cl(Math.round(dragStartImgY + dy * 0.75), -160, 160);
 
       currentPrintOpts.imgX = curImgX;
       currentPrintOpts.imgY = curImgY;
 
       if (tex) {
-        tex.offset.x = -(curImgX - dragStartImgX) / 800;
+        tex.offset.x = -(curImgX - dragStartImgX) / 640;
         tex.offset.y = (curImgY - dragStartImgY) / 800;
       }
 

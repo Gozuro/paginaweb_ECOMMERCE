@@ -116,29 +116,30 @@ async function composePrint({
     if (document.fonts && document.fonts.ready) await document.fonts.ready;
   } catch (e) {}
 
-  const C = 800, c = document.createElement('canvas'); c.width = c.height = C;
+  const CW = 640, CH = 800;
+  const c = document.createElement('canvas'); c.width = CW; c.height = CH;
   const g = c.getContext('2d');
 
   if (src) {
     const im = await getPrintImage(src);
-    const boxSize = text ? 460 : 540;
-    const r = Math.min(boxSize / im.width, boxSize / im.height) * (imgScale || 1);
+    const boxW = CW - 80, boxH = text ? 460 : 560;
+    const r = Math.min(boxW / im.width, boxH / im.height) * (imgScale || 1);
     const iw = im.width * r, ih = im.height * r;
-    const x = (C - iw) / 2 + (imgX || 0);
-    const y = (text ? 110 : (C - ih) / 2) + (imgY || 0);
+    const x = (CW - iw) / 2 + (imgX || 0);
+    const y = (text ? 90 : (CH - ih) / 2) + (imgY || 0);
     g.drawImage(im, x, y, iw, ih);
   }
 
   if (text) {
     /* Texto */
     g.font = fontAt(100);
-    const fit = fitText(text, f, C - 100, src ? 170 : 480, src ? 75 : 160, s => g.measureText(s).width / 100);
+    const fit = fitText(text, f, CW - 80, src ? 180 : 500, src ? 75 : 160, s => g.measureText(s).width / 100);
     if (fit) {
       const baseFs = fit.fs;
       const actualFs = Math.max(12, Math.min(220, Math.round(baseFs * (textScale || 1))));
       const step = actualFs * fit.lh;
-      const cy = (src ? 630 : C / 2) + (textY || 0);
-      const cx = C / 2 + (textX || 0);
+      const cy = (src ? 630 : CH / 2) + (textY || 0);
+      const cx = CW / 2 + (textX || 0);
       const y0 = cy - (fit.lines.length * step) / 2 + step / 2;
       g.font = fontAt(actualFs);
       g.fillStyle = textColor || '#101B33';
