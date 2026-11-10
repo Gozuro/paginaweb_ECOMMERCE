@@ -116,30 +116,52 @@ async function composePrint({
     if (document.fonts && document.fonts.ready) await document.fonts.ready;
   } catch (e) {}
 
-  const CW = 640, CH = 800;
-  const c = document.createElement('canvas'); c.width = CW; c.height = CH;
+  const C = 640, c = document.createElement('canvas'); c.width = c.height = C;
   const g = c.getContext('2d');
 
-  if (src) {
+  if (src && !text) {
+    /* Solo imagen: escala proporcionalmente para quedar bien centrada y visible en el pecho */
     const im = await getPrintImage(src);
-    const boxW = CW - 80, boxH = text ? 460 : 560;
+    const boxW = 380, boxH = 400;
     const r = Math.min(boxW / im.width, boxH / im.height) * (imgScale || 1);
     const iw = im.width * r, ih = im.height * r;
-    const x = (CW - iw) / 2 + (imgX || 0);
-    const y = (text ? 90 : (CH - ih) / 2) + (imgY || 0);
+    const x = (C - iw) / 2 + (imgX || 0);
+    const y = 100 + (boxH - ih) / 2 + (imgY || 0);
     g.drawImage(im, x, y, iw, ih);
-  }
+  } else if (src && text) {
+    /* Imagen con texto: imagen arriba en el pecho y texto debajo, ambos proporcionados y visibles */
+    const im = await getPrintImage(src);
+    const boxW = 340, boxH = 300;
+    const r = Math.min(boxW / im.width, boxH / im.height) * (imgScale || 1);
+    const iw = im.width * r, ih = im.height * r;
+    const x = (C - iw) / 2 + (imgX || 0);
+    const y = 70 + (boxH - ih) / 2 + (imgY || 0);
+    g.drawImage(im, x, y, iw, ih);
 
-  if (text) {
-    /* Texto */
     g.font = fontAt(100);
-    const fit = fitText(text, f, CW - 80, src ? 180 : 500, src ? 75 : 160, s => g.measureText(s).width / 100);
+    const fit = fitText(text, f, 380, 110, 52, s => g.measureText(s).width / 100);
     if (fit) {
       const baseFs = fit.fs;
-      const actualFs = Math.max(12, Math.min(220, Math.round(baseFs * (textScale || 1))));
+      const actualFs = Math.max(12, Math.min(180, Math.round(baseFs * (textScale || 1))));
       const step = actualFs * fit.lh;
-      const cy = (src ? 630 : CH / 2) + (textY || 0);
-      const cx = CW / 2 + (textX || 0);
+      const cy = 440 + (textY || 0);
+      const cx = C / 2 + (textX || 0);
+      const y0 = cy - (fit.lines.length * step) / 2 + step / 2;
+      g.font = fontAt(actualFs);
+      g.fillStyle = textColor || '#101B33';
+      g.textAlign = 'center'; g.textBaseline = 'middle';
+      fit.lines.forEach((ln, i) => g.fillText(ln, cx, y0 + i * step));
+    }
+  } else if (text) {
+    /* Solo texto: centrado en el pecho, escalado armónico para ser legible y nunca salirse */
+    g.font = fontAt(100);
+    const fit = fitText(text, f, 420, 260, 90, s => g.measureText(s).width / 100);
+    if (fit) {
+      const baseFs = fit.fs;
+      const actualFs = Math.max(12, Math.min(200, Math.round(baseFs * (textScale || 1))));
+      const step = actualFs * fit.lh;
+      const cy = C / 2 - 15 + (textY || 0);
+      const cx = C / 2 + (textX || 0);
       const y0 = cy - (fit.lines.length * step) / 2 + step / 2;
       g.font = fontAt(actualFs);
       g.fillStyle = textColor || '#101B33';

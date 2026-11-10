@@ -16,7 +16,6 @@ const st = {
   imgX: saved.imgX != null ? +saved.imgX : 0,
   imgY: saved.imgY != null ? +saved.imgY : 0,
   textScale: saved.textScale != null ? +saved.textScale : 1,
-  textX: saved.textX != null ? +saved.textX : 0,
   textY: saved.textY != null ? +saved.textY : 0
 };
 const $ = id => document.getElementById(id), status = $('status');
@@ -27,40 +26,6 @@ const viewer = createShirtViewer($('stage'));
 $('stage').hidden = !viewer;
 $('viewer-tools').hidden = !viewer;
 $('preview').hidden = !!viewer;
-
-if (viewer) {
-  viewer.onDecalDrag = ({ imgX, imgY, side }) => {
-    st.imgX = imgX;
-    st.imgY = imgY;
-    if (side && side !== st.side) {
-      st.side = side;
-      markSide();
-    }
-    if ($('img-x')) {
-      $('img-x').value = imgX;
-      $('img-x-val').textContent = imgX === 0 ? 'Centro (0)' : `${imgX > 0 ? '+' : ''}${imgX} px`;
-    }
-    if ($('img-y')) {
-      $('img-y').value = imgY;
-      $('img-y-val').textContent = imgY === 0 ? 'Centro (0)' : `${imgY > 0 ? '+' : ''}${imgY} px`;
-    }
-  };
-
-  viewer.onDecalDragEnd = ({ imgX, imgY, side }) => {
-    st.imgX = imgX;
-    st.imgY = imgY;
-    if (side && side !== st.side) st.side = side;
-    render();
-  };
-
-  viewer.onSideChange = newSide => {
-    if (newSide !== st.side) {
-      st.side = newSide;
-      render();
-      toast(newSide === 'back' ? 'Diseño colocado en la espalda.' : 'Diseño colocado al frente.');
-    }
-  };
-}
 
 const currentFont = () => FONTS.find(f => f.id === st.fontId) || FONTS[0];
 const unitPrice = () => CUTS[st.cut].price + PRINT_FEE;
@@ -73,14 +38,14 @@ function markSide() { $('sides').querySelectorAll('[data-side]').forEach(b => b.
 /* Regenera el diseño 3D solo cuando cambian el arte, el texto o sus ajustes de tamaño/posición */
 let printKey = null;
 function syncPrint() {
-  const key = [st.img, st.presetKey, st.text, st.fontId, st.textColor, st.imgScale, st.imgX, st.imgY, st.textScale, st.textX, st.textY];
+  const key = [st.img, st.presetKey, st.text, st.fontId, st.textColor, st.imgScale, st.imgX, st.imgY, st.textScale, st.textY];
   if (printKey && key.every((v, i) => v === printKey[i])) return;
   printKey = key;
   viewer.setPrint({
     img: st.img, preset: st.img ? null : st.presetKey,
     text: st.text, font: currentFont(), textColor: st.textColor,
     imgScale: st.imgScale, imgX: st.imgX, imgY: st.imgY,
-    textScale: st.textScale, textX: st.textX, textY: st.textY
+    textScale: st.textScale, textY: st.textY
   }).catch(err => { status.className = 'status err'; status.textContent = typeof err === 'string' ? err : 'No se pudo generar el diseño.'; });
 }
 
@@ -94,7 +59,7 @@ function render() {
       img: st.img, presetKey: st.img ? null : st.presetKey, side: st.side,
       text: st.text, font: currentFont(), textColor: st.textColor,
       imgScale: st.imgScale, imgX: st.imgX, imgY: st.imgY,
-      textScale: st.textScale, textX: st.textX, textY: st.textY
+      textScale: st.textScale, textY: st.textY
     });
   }
   $('preview-note').textContent = hasArt() ? 'Vista previa de tu playera personalizada.' : 'Elige corte y color. Tu diseño aparecerá aquí.';
@@ -130,15 +95,13 @@ function render() {
     }
   }
 
-  // Actualización de controles de caligrafía (tamaño y posición)
+  // Actualización de controles de caligrafía (tamaño y posición vertical)
   const showTxtAdj = hasCustomText();
   if ($('text-adjust')) {
     $('text-adjust').hidden = !showTxtAdj;
     if (showTxtAdj) {
       if (document.activeElement !== $('text-scale')) $('text-scale').value = st.textScale;
       $('text-scale-val').textContent = Math.round(st.textScale * 100) + '%';
-      if ($('text-x') && document.activeElement !== $('text-x')) $('text-x').value = st.textX;
-      if ($('text-x-val')) $('text-x-val').textContent = st.textX === 0 ? 'Centro (0)' : `${st.textX > 0 ? '+' : ''}${st.textX} px`;
       if (document.activeElement !== $('text-y')) $('text-y').value = st.textY;
       $('text-y-val').textContent = st.textY === 0 ? '0 px' : `${st.textY > 0 ? '+' : ''}${st.textY} px`;
       $('text-scale-pills').querySelectorAll('[data-text-scale]').forEach(b => {
@@ -191,17 +154,16 @@ if ($('img-scale')) {
   $('img-x-minus').addEventListener('click', () => { st.imgX = Math.max(-160, st.imgX - 10); render(); });
   $('img-x-plus').addEventListener('click', () => { st.imgX = Math.min(160, st.imgX + 10); render(); });
   $('img-y').addEventListener('input', e => { st.imgY = +e.target.value; render(); });
-  $('img-y-minus').addEventListener('click', () => { st.imgY = Math.max(-160, st.imgY - 10); render(); });
-  $('img-y-plus').addEventListener('click', () => { st.imgY = Math.min(160, st.imgY + 10); render(); });
+  $('img-y-minus').addEventListener('click', () => { st.imgY = Math.max(-140, st.imgY - 10); render(); });
+  $('img-y-plus').addEventListener('click', () => { st.imgY = Math.min(140, st.imgY + 10); render(); });
 
   $('img-pos-pills').addEventListener('click', e => {
     const b = e.target.closest('[data-img-pos]'); if (!b) return;
     const pos = b.dataset.imgPos;
     if (pos === 'center') { st.imgX = 0; st.imgY = 0; }
-    else if (pos === 'chest-left') { st.imgX = -110; st.imgY = -80; st.imgScale = 0.6; }
-    else if (pos === 'chest-high') { st.imgX = 0; st.imgY = -110; }
-    else if (pos === 'abdomen') { st.imgX = 0; st.imgY = 70; }
-    else if (pos === 'hem') { st.imgX = 0; st.imgY = 130; }
+    else if (pos === 'chest-left') { st.imgX = -110; st.imgY = -70; st.imgScale = Math.min(st.imgScale, 0.7); }
+    else if (pos === 'chest-high') { st.imgX = 0; st.imgY = -80; }
+    else if (pos === 'chest-low') { st.imgX = 0; st.imgY = 70; }
     render();
   });
 
@@ -217,7 +179,7 @@ $('text-input').addEventListener('input', e => { st.text = e.target.value; rende
 $('fonts').addEventListener('click', e => { const b = e.target.closest('[data-font]'); if (b) { st.fontId = b.dataset.font; render(); } });
 $('text-colors').addEventListener('click', e => { const b = e.target.closest('[data-textcolor]'); if (b) { st.textColor = b.dataset.textcolor; render(); } });
 
-// Controles de ajuste de caligrafía: tamaño, posición horizontal (X) y vertical (Y)
+// Controles de ajuste de caligrafía: tamaño y posición vertical
 if ($('text-scale')) {
   $('text-scale').addEventListener('input', e => { st.textScale = +e.target.value; render(); });
   $('text-scale-minus').addEventListener('click', () => { st.textScale = Math.max(0.5, +(st.textScale - 0.1).toFixed(2)); render(); });
@@ -227,31 +189,14 @@ if ($('text-scale')) {
     st.textScale = +b.dataset.textScale;
     render();
   });
-  if ($('text-x')) {
-    $('text-x').addEventListener('input', e => { st.textX = +e.target.value; render(); });
-    $('text-x-minus').addEventListener('click', () => { st.textX = Math.max(-160, st.textX - 10); render(); });
-    $('text-x-plus').addEventListener('click', () => { st.textX = Math.min(160, st.textX + 10); render(); });
-  }
   $('text-y').addEventListener('input', e => { st.textY = +e.target.value; render(); });
-  $('text-y-minus').addEventListener('click', () => { st.textY = Math.max(-160, st.textY - 10); render(); });
-  $('text-y-plus').addEventListener('click', () => { st.textY = Math.min(160, st.textY + 10); render(); });
-
-  if ($('text-pos-pills')) {
-    $('text-pos-pills').addEventListener('click', e => {
-      const b = e.target.closest('[data-text-pos]'); if (!b) return;
-      const pos = b.dataset.textPos;
-      if (pos === 'center') { st.textX = 0; st.textY = 0; }
-      else if (pos === 'chest-high') { st.textX = 0; st.textY = -110; }
-      else if (pos === 'chest-left') { st.textX = -110; st.textY = -80; st.textScale = 0.7; }
-      else if (pos === 'bottom') { st.textX = 0; st.textY = 120; }
-      render();
-    });
-  }
+  $('text-y-minus').addEventListener('click', () => { st.textY = Math.max(-120, st.textY - 10); render(); });
+  $('text-y-plus').addEventListener('click', () => { st.textY = Math.min(120, st.textY + 10); render(); });
 
   $('text-reset-ctrls').addEventListener('click', () => {
-    st.textScale = 1; st.textX = 0; st.textY = 0;
+    st.textScale = 1; st.textY = 0;
     render();
-    toast('Caligrafía restablecida.');
+    toast('Tamaño de letra restablecido.');
   });
 }
 
@@ -285,7 +230,7 @@ $('reset').addEventListener('click', () => {
   Object.assign(st, {
     cut: 'regular', color: '#2F4BFF', img: null, fileName: '', presetKey: 'ninguno',
     text: '', fontId: FONTS[0].id, textColor: TEXT_COLORS[0].hex, side: 'front', size: 'M', qty: 1,
-    imgScale: 1, imgX: 0, imgY: 0, textScale: 1, textX: 0, textY: 0
+    imgScale: 1, imgX: 0, imgY: 0, textScale: 1, textY: 0
   });
   $('text-input').value = ''; $('file').value = ''; $('file-loaded').hidden = true; $('notas').value = '';
   status.className = 'status'; status.textContent = '';
@@ -319,7 +264,6 @@ $('form').addEventListener('submit', async e => {
     imgX: st.imgX,
     imgY: st.imgY,
     textScale: st.textScale,
-    textX: st.textX,
     textY: st.textY
   });
 

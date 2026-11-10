@@ -10,8 +10,8 @@
       <button type="button" data-side="front" aria-pressed="true">Diseño al frente</button>
       <button type="button" data-side="back" aria-pressed="false">Diseño en la espalda</button>
     </div>
-    <div class="stage" id="stage" role="img" aria-label="Playera en 3D flotante. Arrastra para girar en 360°; arrastra el diseño directamente sobre la tela para moverlo." hidden>
-      <p class="hint">Gira en 360° con el ratón • Arrastra tu diseño sobre la playera para moverlo</p>
+    <div class="stage" id="stage" role="img" aria-label="Playera en 3D. Arrastra para girar; con Ctrl y la rueda se acerca." hidden>
+      <p class="hint">Arrastra para girar. Ctrl + rueda o pellizca para acercar.</p>
     </div>
     <div id="preview"></div>
     <p id="preview-note" class="preview-note">Elige corte y color. Tu diseño aparecerá aquí.</p>
@@ -102,7 +102,7 @@
           </div>
           <div class="adjust-ctrl-bar">
             <button type="button" class="adjust-step-btn" id="img-y-minus" aria-label="Subir imagen">↑</button>
-            <input type="range" id="img-y" min="-160" max="160" step="2" value="0" aria-label="Posición vertical de la imagen">
+            <input type="range" id="img-y" min="-140" max="140" step="2" value="0" aria-label="Posición vertical de la imagen">
             <button type="button" class="adjust-step-btn" id="img-y-plus" aria-label="Bajar imagen">↓</button>
           </div>
         </div>
@@ -113,8 +113,7 @@
             <button type="button" class="preset-pill" data-img-pos="center">Centro</button>
             <button type="button" class="preset-pill" data-img-pos="chest-left">Pecho izq.</button>
             <button type="button" class="preset-pill" data-img-pos="chest-high">Pecho alto</button>
-            <button type="button" class="preset-pill" data-img-pos="abdomen">Abdomen</button>
-            <button type="button" class="preset-pill" data-img-pos="hem">Baja</button>
+            <button type="button" class="preset-pill" data-img-pos="chest-low">Abajo</button>
           </div>
         </div>
       </div>
@@ -158,35 +157,13 @@
 
         <div class="adjust-row">
           <div class="adjust-label-row">
-            <label for="text-x">Posición horizontal de la letra (X)</label>
-            <span class="adjust-val" id="text-x-val">Centro (0)</span>
-          </div>
-          <div class="adjust-ctrl-bar">
-            <button type="button" class="adjust-step-btn" id="text-x-minus" aria-label="Mover texto a la izquierda">←</button>
-            <input type="range" id="text-x" min="-160" max="160" step="2" value="0" aria-label="Posición horizontal de la letra">
-            <button type="button" class="adjust-step-btn" id="text-x-plus" aria-label="Mover texto a la derecha">→</button>
-          </div>
-        </div>
-
-        <div class="adjust-row">
-          <div class="adjust-label-row">
             <label for="text-y">Posición vertical de la letra (Y)</label>
             <span class="adjust-val" id="text-y-val">0 px</span>
           </div>
           <div class="adjust-ctrl-bar">
             <button type="button" class="adjust-step-btn" id="text-y-minus" aria-label="Subir texto">↑</button>
-            <input type="range" id="text-y" min="-160" max="160" step="2" value="0" aria-label="Posición vertical de la letra">
+            <input type="range" id="text-y" min="-120" max="120" step="2" value="0" aria-label="Posición vertical de la letra">
             <button type="button" class="adjust-step-btn" id="text-y-plus" aria-label="Bajar texto">↓</button>
-          </div>
-        </div>
-
-        <div class="adjust-presets">
-          <span class="adjust-sublabel">Atajos de posición:</span>
-          <div class="preset-pill-group" id="text-pos-pills">
-            <button type="button" class="preset-pill" data-text-pos="center">Centro</button>
-            <button type="button" class="preset-pill" data-text-pos="chest-high">Pecho alto</button>
-            <button type="button" class="preset-pill" data-text-pos="chest-left">Pecho izq.</button>
-            <button type="button" class="preset-pill" data-text-pos="bottom">Abajo</button>
           </div>
         </div>
       </div>
