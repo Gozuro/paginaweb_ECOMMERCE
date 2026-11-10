@@ -3,28 +3,28 @@ const CONTACT_EMAIL = 'hola@tramastudio.com';
 
 /* price = precio base de la playera en blanco para personalizar (antes de PRINT_FEE) */
 const CUTS = {
-  regular:  { name: 'Regular',  desc: 'Caída clásica, cómoda para todo el día.', w: .60, L: 1.80, s: .30, price: 169 },
+  regular: { name: 'Regular', desc: 'Caída clásica, cómoda para todo el día.', w: .60, L: 1.80, s: .30, price: 169 },
   oversize: { name: 'Oversize', desc: 'Hombros caídos y mangas largas. Look urbano.', w: .78, L: 1.95, s: .45, price: 199 },
-  slim:     { name: 'Slim',     desc: 'Ajustada al cuerpo, mangas cortas.', w: .50, L: 1.75, s: .22, price: 179 },
-  crop:     { name: 'Crop',     desc: 'Corte corto, justo arriba de la cadera.', w: .62, L: 1.35, s: .30, price: 179 }
+  slim: { name: 'Slim', desc: 'Ajustada al cuerpo, mangas cortas.', w: .50, L: 1.75, s: .22, price: 179 },
+  crop: { name: 'Crop', desc: 'Corte corto, justo arriba de la cadera.', w: .62, L: 1.35, s: .30, price: 179 }
 };
 
 const COLORS = [
-  { name: 'Blanco',  hex: '#FFFFFF' }, { name: 'Negro',  hex: '#1B1B1F' },
-  { name: 'Cobalto', hex: '#2F4BFF' }, { name: 'Arena',  hex: '#E6D5B8' },
-  { name: 'Bosque',  hex: '#2F5D50' }, { name: 'Rojo',   hex: '#D7263D' },
-  { name: 'Gris',    hex: '#9AA3AF' }
+  { name: 'Blanco', hex: '#FFFFFF' }, { name: 'Negro', hex: '#1B1B1F' },
+  { name: 'Cobalto', hex: '#2F4BFF' }, { name: 'Arena', hex: '#E6D5B8' },
+  { name: 'Bosque', hex: '#2F5D50' }, { name: 'Rojo', hex: '#D7263D' },
+  { name: 'Gris', hex: '#9AA3AF' }
 ];
 
 const PRODUCTS = [
-  { id: 'prod-01', name: 'Básica Cobalto',  cut: 'regular',  color: '#2F4BFF', stock: 24, price: 10, sizes: 'S, M, L, XL' },
-  { id: 'prod-02', name: 'Básica Negra',    cut: 'regular',  color: '#1B1B1F', stock: 31, price: 189, sizes: 'S, M, L, XL' },
-  { id: 'prod-03', name: 'Street Arena',    cut: 'oversize', color: '#E6D5B8', stock: 12, price: 239, sizes: 'M, L, XL' },
-  { id: 'prod-04', name: 'Street Bosque',   cut: 'oversize', color: '#2F5D50', stock: 4,  price: 239, sizes: 'M, L' },
-  { id: 'prod-05', name: 'Fit Blanca',      cut: 'slim',     color: '#FFFFFF', stock: 18, price: 199, sizes: 'S, M, L' },
-  { id: 'prod-06', name: 'Fit Gris',        cut: 'slim',     color: '#9AA3AF', stock: 9,  price: 199, sizes: 'S, M, L' },
-  { id: 'prod-07', name: 'Crop Roja',       cut: 'crop',     color: '#D7263D', stock: 5,  price: 209, sizes: 'S, M' },
-  { id: 'prod-08', name: 'Crop Blanca',     cut: 'crop',     color: '#FFFFFF', stock: 14, price: 209, sizes: 'S, M, L' }
+  { id: 'prod-01', name: 'Básica Cobalto', cut: 'regular', color: '#2F4BFF', stock: 24, price: 10, sizes: 'S, M, L, XL' },
+  { id: 'prod-02', name: 'Básica Negra', cut: 'regular', color: '#1B1B1F', stock: 31, price: 10, sizes: 'S, M, L, XL' },
+  { id: 'prod-03', name: 'Street Arena', cut: 'oversize', color: '#E6D5B8', stock: 12, price: 29, sizes: 'M, L, XL' },
+  { id: 'prod-04', name: 'Street Bosque', cut: 'oversize', color: '#2F5D50', stock: 4, price: 29, sizes: 'M, L' },
+  { id: 'prod-05', name: 'Fit Blanca', cut: 'slim', color: '#FFFFFF', stock: 18, price: 19, sizes: 'S, M, L' },
+  { id: 'prod-06', name: 'Fit Gris', cut: 'slim', color: '#9AA3AF', stock: 9, price: 19, sizes: 'S, M, L' },
+  { id: 'prod-07', name: 'Crop Roja', cut: 'crop', color: '#D7263D', stock: 5, price: 29, sizes: 'S, M' },
+  { id: 'prod-08', name: 'Crop Blanca', cut: 'crop', color: '#FFFFFF', stock: 14, price: 29, sizes: 'S, M, L' }
 ];
 
 /* Tallas disponibles para pedidos personalizados */
@@ -44,11 +44,11 @@ const PROMOS = { TRAMA10: .10, LANZAMIENTO: .15 };
    - avg: ancho medio de una letra en em; solo se usa para estimar el texto en las vistas SVG.
    - lh: interlineado recomendado para cuando el texto se reparte en dos renglones. */
 const FONTS = [
-  { id: 'display',   name: 'Bricolage (Moderna)',     family: "'Bricolage Grotesque', 'Arial Black', sans-serif", weight: 800, style: 'normal', avg: .65, lh: 1.05 },
-  { id: 'condensed', name: 'Bebas Neue (Condensada)', family: "'Bebas Neue', Impact, 'Arial Narrow', sans-serif",  weight: 400, style: 'normal', avg: .40, lh: 1.0 },
-  { id: 'serif',     name: 'Playfair (Elegante)',     family: "'Playfair Display', Georgia, serif",               weight: 800, style: 'normal', avg: .66, lh: 1.1 },
-  { id: 'script',    name: 'Pacifico (Manuscrita)',   family: "'Pacifico', 'Brush Script MT', cursive",           weight: 400, style: 'normal', avg: .66, lh: 1.3 },
-  { id: 'mono',      name: 'Space Mono (Máquina)',    family: "'Space Mono', 'Courier New', monospace",           weight: 700, style: 'normal', avg: .62, lh: 1.15 }
+  { id: 'display', name: 'Bricolage (Moderna)', family: "'Bricolage Grotesque', 'Arial Black', sans-serif", weight: 800, style: 'normal', avg: .65, lh: 1.05 },
+  { id: 'condensed', name: 'Bebas Neue (Condensada)', family: "'Bebas Neue', Impact, 'Arial Narrow', sans-serif", weight: 400, style: 'normal', avg: .40, lh: 1.0 },
+  { id: 'serif', name: 'Playfair (Elegante)', family: "'Playfair Display', Georgia, serif", weight: 800, style: 'normal', avg: .66, lh: 1.1 },
+  { id: 'script', name: 'Pacifico (Manuscrita)', family: "'Pacifico', 'Brush Script MT', cursive", weight: 400, style: 'normal', avg: .66, lh: 1.3 },
+  { id: 'mono', name: 'Space Mono (Máquina)', family: "'Space Mono', 'Courier New', monospace", weight: 700, style: 'normal', avg: .62, lh: 1.15 }
 ];
 
 /* Reparte el texto en 1 o 2 renglones (cortando en espacios) y devuelve el tamaño de letra más grande
@@ -70,11 +70,11 @@ function fitText(text, font, boxW, boxH, maxFs, medir) {
 }
 
 const TEXT_COLORS = [
-  { name: 'Tinta',   hex: '#101B33' },
-  { name: 'Blanco',  hex: '#FFFFFF' },
+  { name: 'Tinta', hex: '#101B33' },
+  { name: 'Blanco', hex: '#FFFFFF' },
   { name: 'Cobalto', hex: '#2F4BFF' },
-  { name: 'Sol',     hex: '#FFD23F' },
-  { name: 'Rojo',    hex: '#D7263D' }
+  { name: 'Sol', hex: '#FFD23F' },
+  { name: 'Rojo', hex: '#D7263D' }
 ];
 
 /* Estampados prediseñados (se usan si el cliente no sube su propio archivo).
@@ -128,7 +128,7 @@ function escapeXML(s) {
 function shirtPath(k, side) {
   const { w, L, s } = CUTS[k], sx = w + .04, ex = sx + s, bx = ex - .22, neck = side === 'back' ? .88 : .7;
   const p = (x, y) => (120 + x * 88).toFixed(1) + ' ' + (14 + (1 - y) * 88).toFixed(1);
-  return `M${p(-.28,1)} L${p(-sx,.92)} L${p(-ex,.54)} L${p(-bx,.3)} L${p(-w,.3)} L${p(-w,1-L)} L${p(w,1-L)} L${p(w,.3)} L${p(bx,.3)} L${p(ex,.54)} L${p(sx,.92)} L${p(.28,1)} Q${p(0,neck)} ${p(-.28,1)}Z`;
+  return `M${p(-.28, 1)} L${p(-sx, .92)} L${p(-ex, .54)} L${p(-bx, .3)} L${p(-w, .3)} L${p(-w, 1 - L)} L${p(w, 1 - L)} L${p(w, .3)} L${p(bx, .3)} L${p(ex, .54)} L${p(sx, .92)} L${p(.28, 1)} Q${p(0, neck)} ${p(-.28, 1)}Z`;
 }
 
 /* Capa de arte (archivo subido o estampado) + texto, dentro del área imprimible del pecho */
