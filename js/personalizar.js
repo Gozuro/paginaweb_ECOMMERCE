@@ -27,6 +27,27 @@ $('stage').hidden = !viewer;
 $('viewer-tools').hidden = !viewer;
 $('preview').hidden = !!viewer;
 
+if (viewer) {
+  viewer.onDecalDrag = ({ imgX, imgY }) => {
+    st.imgX = imgX;
+    st.imgY = imgY;
+    if ($('img-x')) {
+      $('img-x').value = imgX;
+      $('img-x-val').textContent = imgX === 0 ? 'Centro (0)' : `${imgX > 0 ? '+' : ''}${imgX} px`;
+    }
+    if ($('img-y')) {
+      $('img-y').value = imgY;
+      $('img-y-val').textContent = imgY === 0 ? 'Centro (0)' : `${imgY > 0 ? '+' : ''}${imgY} px`;
+    }
+  };
+
+  viewer.onDecalDragEnd = ({ imgX, imgY }) => {
+    st.imgX = imgX;
+    st.imgY = imgY;
+    render();
+  };
+}
+
 const currentFont = () => FONTS.find(f => f.id === st.fontId) || FONTS[0];
 const unitPrice = () => CUTS[st.cut].price + PRINT_FEE;
 const hasImageArt = () => !!st.img || (st.presetKey && st.presetKey !== 'ninguno' && PRESETS[st.presetKey] && PRESETS[st.presetKey].inner);
