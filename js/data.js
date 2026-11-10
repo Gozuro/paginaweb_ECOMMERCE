@@ -4,9 +4,9 @@ const CONTACT_EMAIL = 'hola@tramastudio.com';
 /* price = precio base de la playera en blanco para personalizar (antes de PRINT_FEE) */
 const CUTS = {
   regular: { name: 'Regular', desc: 'Caída clásica, cómoda para todo el día.', w: .60, L: 1.80, s: .30, price: 10 },
-  oversize: { name: 'Oversize', desc: 'Hombros caídos y mangas largas. Look urbano.', w: .78, L: 1.95, s: .45, price: 10 },
-  slim: { name: 'Slim', desc: 'Ajustada al cuerpo, mangas cortas.', w: .50, L: 1.75, s: .22, price: 10 },
-  crop: { name: 'Crop', desc: 'Corte corto, justo arriba de la cadera.', w: .62, L: 1.35, s: .30, price: 10 }
+  oversize: { name: 'Oversize', desc: 'Hombros caídos y mangas largas. Look urbano.', w: .78, L: 1.95, s: .45, price: 29 },
+  slim: { name: 'Slim', desc: 'Ajustada al cuerpo, mangas cortas.', w: .50, L: 1.75, s: .22, price: 19 },
+  crop: { name: 'Crop', desc: 'Corte corto, justo arriba de la cadera.', w: .62, L: 1.35, s: .30, price: 29 }
 };
 
 const COLORS = [
@@ -31,7 +31,7 @@ const PRODUCTS = [
 const SIZES = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
 
 /* Reglas de precio y envío (edítalas según tu negocio) */
-const PRINT_FEE = 5;       // cargo fijo por estampado/texto personalizado
+const PRINT_FEE = 0;       // cargo fijo por estampado/texto personalizado (0 para respetar el precio exacto del corte)
 const SHIPPING = 5;        // envío estándar (MXN)
 const FREE_SHIPPING = 899;  // a partir de este subtotal el envío es gratis
 

@@ -73,6 +73,12 @@ function render() {
   $('text-colors').innerHTML = textColorsHTML(st.textColor);
   $('sizes').innerHTML = sizePillsHTML(st.size);
   $('qty-val').textContent = st.qty;
+  const cutPrice = CUTS[st.cut] ? CUTS[st.cut].price : 0;
+  if ($('price-breakdown')) {
+    $('price-breakdown').textContent = PRINT_FEE > 0
+      ? `Playera $${cutPrice} + Personalizado $${PRINT_FEE}`
+      : `Playera $${cutPrice}`;
+  }
   $('price-total').textContent = `$${unitPrice() * st.qty}`;
 
   // Actualización de controles de imagen (tamaño y posición)
