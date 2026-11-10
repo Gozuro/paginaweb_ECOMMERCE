@@ -139,7 +139,7 @@ function printLayerSVG(cut, {
 } = {}) {
   const w = CUTS[cut].w, a = Math.min(w * 80, 62), cx = 120, top = 46;
   const hasArt = !!img || (presetKey && presetKey !== 'ninguno' && PRESETS[presetKey] && PRESETS[presetKey].inner);
-  const k = a / 440;
+  const k = a / 540;
   let out = '';
 
   const scale = imgScale || 1;

@@ -116,29 +116,28 @@ async function composePrint({
     if (document.fonts && document.fonts.ready) await document.fonts.ready;
   } catch (e) {}
 
-  const C = 640, c = document.createElement('canvas'); c.width = c.height = C;
+  const C = 800, c = document.createElement('canvas'); c.width = c.height = C;
   const g = c.getContext('2d');
 
   if (src) {
     const im = await getPrintImage(src);
-    const boxTop = 30, boxSize = text ? 440 : 560;
+    const boxSize = text ? 520 : 640;
     const r = Math.min(boxSize / im.width, boxSize / im.height) * (imgScale || 1);
     const iw = im.width * r, ih = im.height * r;
     const x = (C - iw) / 2 + (imgX || 0);
-    const y = boxTop + (boxSize - ih) / 2 + (imgY || 0);
+    const y = (text ? 60 : (C - ih) / 2) + (imgY || 0);
     g.drawImage(im, x, y, iw, ih);
   }
 
   if (text) {
-    /* Texto solo: ocupa casi todo el ancho del área (hasta 150 px de alto por renglón).
-       Con arte: va en la franja inferior, bajo la imagen (hasta 72 px). */
+    /* Texto: con rango completo en toda la prenda */
     g.font = fontAt(100);
-    const fit = fitText(text, f, C - 60, src ? 150 : 400, src ? 72 : 150, s => g.measureText(s).width / 100);
+    const fit = fitText(text, f, C - 80, src ? 180 : 520, src ? 80 : 180, s => g.measureText(s).width / 100);
     if (fit) {
       const baseFs = fit.fs;
       const actualFs = Math.max(12, Math.min(220, Math.round(baseFs * (textScale || 1))));
       const step = actualFs * fit.lh;
-      const cy = (src ? 556 : C / 2) + (textY || 0);
+      const cy = (src ? 660 : C / 2) + (textY || 0);
       const cx = C / 2 + (textX || 0);
       const y0 = cy - (fit.lines.length * step) / 2 + step / 2;
       g.font = fontAt(actualFs);
