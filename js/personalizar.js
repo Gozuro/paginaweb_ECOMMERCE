@@ -22,10 +22,38 @@ const $ = id => document.getElementById(id), status = $('status');
 
 /* Vista 3D; si no hay WebGL o Three.js no cargó, se usa la vista plana (SVG) */
 $('stage').hidden = false;
-const viewer = createShirtViewer($('stage'));
+let viewer = createShirtViewer($('stage'));
 $('stage').hidden = !viewer;
 $('viewer-tools').hidden = !viewer;
 $('preview').hidden = !!viewer;
+
+/* Respaldo: si el modelo 3D no carga se muestra la vista plana */
+function useFlatPreview() {
+  $('stage').hidden = true; $('viewer-tools').hidden = true; $('preview').hidden = false;
+  viewer = null; render();
+}
+if (viewer) {
+  viewer.onFail = useFlatPreview;
+  viewer.onSideChange = side => { st.side = side; markSide(); saveDesign(st); };
+  viewer.onDecalDrag = ({ imgX, imgY, textY }) => {
+    if (imgX != null) {
+      st.imgX = imgX;
+      if ($('img-x')) $('img-x').value = imgX;
+      if ($('img-x-val')) $('img-x-val').textContent = imgX === 0 ? 'Centro (0)' : `${imgX > 0 ? '+' : ''}${imgX} px`;
+    }
+    if (imgY != null) {
+      st.imgY = imgY;
+      if ($('img-y')) $('img-y').value = imgY;
+      if ($('img-y-val')) $('img-y-val').textContent = imgY === 0 ? 'Centro (0)' : `${imgY > 0 ? '+' : ''}${imgY} px`;
+    }
+    if (textY != null) {
+      st.textY = textY;
+      if ($('text-y')) $('text-y').value = textY;
+      if ($('text-y-val')) $('text-y-val').textContent = textY === 0 ? '0 px' : `${textY > 0 ? '+' : ''}${textY} px`;
+    }
+  };
+  viewer.onDecalDragEnd = () => render();
+}
 
 const currentFont = () => FONTS.find(f => f.id === st.fontId) || FONTS[0];
 const unitPrice = () => CUTS[st.cut].price + PRINT_FEE;

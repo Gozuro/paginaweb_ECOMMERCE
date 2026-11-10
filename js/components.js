@@ -116,57 +116,59 @@ async function composePrint({
     if (document.fonts && document.fonts.ready) await document.fonts.ready;
   } catch (e) {}
 
-  const C = 640, c = document.createElement('canvas'); c.width = c.height = C;
+  const CW = 640, CH = 768, PAD = 10;
+  const c = document.createElement('canvas'); c.width = CW; c.height = CH;
   const g = c.getContext('2d');
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 
   if (src && !text) {
     /* Solo imagen: escala proporcionalmente para quedar bien centrada y visible en el pecho */
     const im = await getPrintImage(src);
-    const boxW = 380, boxH = 400;
-    const r = Math.min(boxW / im.width, boxH / im.height) * (imgScale || 1);
-    const iw = im.width * r, ih = im.height * r;
-    const x = (C - iw) / 2 + (imgX || 0);
-    const y = 100 + (boxH - ih) / 2 + (imgY || 0);
+    const boxW = 340, boxH = 360;
+    const r = Math.min(boxW / im.width, boxH / im.height, (CW - PAD * 2) / im.width, (CH - PAD * 2) / im.height) * (imgScale || 1);
+    const iw = Math.min(CW - PAD * 2, im.width * r), ih = Math.min(CH - PAD * 2, im.height * r);
+    const x = clamp((CW - iw) / 2 + (imgX || 0), PAD, CW - iw - PAD);
+    const y = clamp(110 + (boxH - ih) / 2 + (imgY || 0), PAD, CH - ih - PAD);
     g.drawImage(im, x, y, iw, ih);
   } else if (src && text) {
     /* Imagen con texto: imagen arriba en el pecho y texto debajo, ambos proporcionados y visibles */
     const im = await getPrintImage(src);
-    const boxW = 340, boxH = 300;
-    const r = Math.min(boxW / im.width, boxH / im.height) * (imgScale || 1);
-    const iw = im.width * r, ih = im.height * r;
-    const x = (C - iw) / 2 + (imgX || 0);
-    const y = 70 + (boxH - ih) / 2 + (imgY || 0);
+    const boxW = 310, boxH = 290;
+    const r = Math.min(boxW / im.width, boxH / im.height, (CW - PAD * 2) / im.width, (CH - PAD * 2) / im.height) * (imgScale || 1);
+    const iw = Math.min(CW - PAD * 2, im.width * r), ih = Math.min(CH - PAD * 2, im.height * r);
+    const x = clamp((CW - iw) / 2 + (imgX || 0), PAD, CW - iw - PAD);
+    const y = clamp(65 + (boxH - ih) / 2 + (imgY || 0), PAD, CH - ih - 140);
     g.drawImage(im, x, y, iw, ih);
 
     g.font = fontAt(100);
     const fit = fitText(text, f, 380, 110, 52, s => g.measureText(s).width / 100);
     if (fit) {
       const baseFs = fit.fs;
-      const actualFs = Math.max(12, Math.min(180, Math.round(baseFs * (textScale || 1))));
-      const step = actualFs * fit.lh;
-      const cy = 440 + (textY || 0);
-      const cx = C / 2 + (textX || 0);
-      const y0 = cy - (fit.lines.length * step) / 2 + step / 2;
+      const actualFs = Math.max(12, Math.min(140, Math.round(baseFs * (textScale || 1))));
+      const step = actualFs * fit.lh, totalH = fit.lines.length * step;
+      const cy = clamp(450 + (textY || 0), PAD + totalH / 2, CH - PAD - totalH / 2);
+      const cx = clamp(CW / 2 + (textX || 0), PAD + 80, CW - PAD - 80);
+      const y0 = cy - totalH / 2 + step / 2;
       g.font = fontAt(actualFs);
       g.fillStyle = textColor || '#101B33';
       g.textAlign = 'center'; g.textBaseline = 'middle';
-      fit.lines.forEach((ln, i) => g.fillText(ln, cx, y0 + i * step));
+      fit.lines.forEach((ln, i) => g.fillText(ln, cx, y0 + i * step, CW - PAD * 2));
     }
   } else if (text) {
     /* Solo texto: centrado en el pecho, escalado armónico para ser legible y nunca salirse */
     g.font = fontAt(100);
-    const fit = fitText(text, f, 420, 260, 90, s => g.measureText(s).width / 100);
+    const fit = fitText(text, f, 420, 260, 88, s => g.measureText(s).width / 100);
     if (fit) {
       const baseFs = fit.fs;
-      const actualFs = Math.max(12, Math.min(200, Math.round(baseFs * (textScale || 1))));
-      const step = actualFs * fit.lh;
-      const cy = C / 2 - 15 + (textY || 0);
-      const cx = C / 2 + (textX || 0);
-      const y0 = cy - (fit.lines.length * step) / 2 + step / 2;
+      const actualFs = Math.max(12, Math.min(170, Math.round(baseFs * (textScale || 1))));
+      const step = actualFs * fit.lh, totalH = fit.lines.length * step;
+      const cy = clamp(300 + (textY || 0), PAD + totalH / 2, CH - PAD - totalH / 2);
+      const cx = clamp(CW / 2 + (textX || 0), PAD + 80, CW - PAD - 80);
+      const y0 = cy - totalH / 2 + step / 2;
       g.font = fontAt(actualFs);
       g.fillStyle = textColor || '#101B33';
       g.textAlign = 'center'; g.textBaseline = 'middle';
-      fit.lines.forEach((ln, i) => g.fillText(ln, cx, y0 + i * step));
+      fit.lines.forEach((ln, i) => g.fillText(ln, cx, y0 + i * step, CW - PAD * 2));
     }
   }
 
